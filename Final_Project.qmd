@@ -14,51 +14,31 @@ abstract:
 ---
 
 ```{r}
+#Libraries
+
 library(causaldata)
 library(dagitty)
 library(ggdag)
 library(tidyverse)
 library(knitr)
-
-
 ```
 
 #DAG
 
-outcome = murder
-exposure = post
-
 ```{r}
-murder ~ unemployrt + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44 + poverty + robbery_gun_r (previous_yr) + popwt + l_exp_subsidy (lag) + l_exp_pubwelfare (lag) + l_lagprisoner + l_police (lag) + post + years_after_treat
+# young_male_race is taking place of blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44
 
-post ~ homicide + robbery + assault + burglary + larceny + motor + murder (lagged) + political
-  #find variable for political affiliation
-
-poverty ~ umemployrt + l_exp_subsidy (lag) + l_exp_pubwelfare (lag) + l_income
-
-jhcitizen_c ~ post + robbery + assault + burglary + larceny + motor + murder + robbery_gun_r + popwt
-
-robbery_gun_r ~ poverty
-
-l_police ~ political + income
-
-```
-
-
-```{r}
 castle_dag <- dagify(
-  murder ~ blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44 + poverty + popwt + robbery_gun_r + l_police + post + years_after_treat + robbery,
+  murder ~ young_male_race + poverty + popwt + robbery_gun_r + l_police + post + years_after_treat + robbery,
   
-  post ~ homicide + robbery_gun_r + assault + burglary + larceny + motor + murder_lag,
+  post ~ homicide + robbery_gun_r + assault + burglary + larceny + motor + murder_lag + robbery,
   
-  burglary ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
-  homicide ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
-  larceny ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
-  motor ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
-  robbery ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
-  
-  robbery_gun_r ~ poverty + robbery,
-  
+  burglary ~ poverty + young_male_race,
+  homicide ~ poverty + young_male_race,
+  larceny ~ poverty + young_male_race,
+  motor ~ poverty + young_male_race,
+  robbery ~ poverty + young_male_race,
+  assault ~ poverty + young_male_race,
   
   poverty ~ unemployrt + l_exp_subsidy + l_exp_pubwelfare + l_income,
   
@@ -70,10 +50,7 @@ castle_dag <- dagify(
     murder = "Murder",
     murder_lag = "Murder Lagged",
     unemployrt = "Unemployment",
-    blackm_15_24 = "Black Males 15-24",
-    whitem_15_24 = "White Males 15-24",
-    blackm_25_44 = "Black Males 25-44",
-    whitem_25_44 = "White Males 25-44",
+    young_male_race = "Male Demo.",
     poverty = "Poverty",
     popwt = "Population",
     robbery_gun_r = "Armed Robbery Prop.",
@@ -94,8 +71,6 @@ castle_dag <- dagify(
 
 
 ```
-
-
 
 ```{r, fig.height=10, fig.width=10}
 ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
@@ -121,8 +96,11 @@ adjustmentSets(castle_dag)
 # test effect for different years before/after - diff in diff
 ```
 
+```{r}
 
 
+
+```
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
