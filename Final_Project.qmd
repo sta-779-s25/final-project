@@ -1,0 +1,130 @@
+---
+title: "Title"
+author: "Authors"
+format:
+  pdf:
+    fontsize: 12pt
+editor: visual
+execute: 
+  echo: false
+  message: false
+  warning: false
+abstract:
+  This is an abstract
+---
+
+```{r}
+library(causaldata)
+library(dagitty)
+library(ggdag)
+library(tidyverse)
+library(knitr)
+
+
+```
+
+#DAG
+
+outcome = murder
+exposure = post
+
+```{r}
+murder ~ unemployrt + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44 + poverty + robbery_gun_r (previous_yr) + popwt + l_exp_subsidy (lag) + l_exp_pubwelfare (lag) + l_lagprisoner + l_police (lag) + post + years_after_treat
+
+post ~ homicide + robbery + assault + burglary + larceny + motor + murder (lagged) + political
+  #find variable for political affiliation
+
+poverty ~ umemployrt + l_exp_subsidy (lag) + l_exp_pubwelfare (lag) + l_income
+
+jhcitizen_c ~ post + robbery + assault + burglary + larceny + motor + murder + robbery_gun_r + popwt
+
+robbery_gun_r ~ poverty
+
+l_police ~ political + income
+
+```
+
+
+```{r}
+castle_dag <- dagify(
+  murder ~ blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44 + poverty + popwt + robbery_gun_r + l_police + post + years_after_treat + robbery,
+  
+  post ~ homicide + robbery_gun_r + assault + burglary + larceny + motor + murder_lag,
+  
+  burglary ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
+  homicide ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
+  larceny ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
+  motor ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
+  robbery ~ poverty + blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44,
+  
+  robbery_gun_r ~ poverty + robbery,
+  
+  
+  poverty ~ unemployrt + l_exp_subsidy + l_exp_pubwelfare + l_income,
+  
+  l_police ~ l_income,
+  
+  outcome = "murder",
+  exposure = "post",
+  labels = c(
+    murder = "Murder",
+    murder_lag = "Murder Lagged",
+    unemployrt = "Unemployment",
+    blackm_15_24 = "Black Males 15-24",
+    whitem_15_24 = "White Males 15-24",
+    blackm_25_44 = "Black Males 25-44",
+    whitem_25_44 = "White Males 25-44",
+    poverty = "Poverty",
+    popwt = "Population",
+    robbery_gun_r = "Armed Robbery Prop.",
+    l_exp_subsidy = "Subsidy",
+    l_exp_pubwelfare = "Welfare",
+    l_police = "Police",
+    post = "Castle Doctrine",
+    years_after_treat = "Years Post Castle",
+    
+    homicide = "Homicides",
+    robbery = "Robbery",
+    assault = "Assaults",
+    burglary = "Burglary",
+    larceny = "Larceny",
+    motor = "Auto Theft",
+    l_income = "Income")
+)
+
+
+```
+
+
+
+```{r, fig.height=10, fig.width=10}
+ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
+  theme_dag()
+
+```
+
+```{r}
+ggdag_adjustment_set(castle_dag, text_col = "black") +
+  theme_dag()
+adjustmentSets(castle_dag)
+
+# use adjustment sets to build propensity score model
+
+# check imbalance for variables not in DAG, adjust
+
+# use weighting from propensity score in outcome model
+    # add exposure + time to exposure + interaction
+    # use g-comp technique
+
+# use bootstrap to estimate standard error
+
+# test effect for different years before/after - diff in diff
+```
+
+
+
+
+```{r ref.label = knitr::all_labels()}
+#| echo: true
+#| eval: false
+```
