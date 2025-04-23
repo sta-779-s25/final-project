@@ -47,4 +47,4 @@ castle_dat <- castle_dat |>
              starts_with("trend") |
              starts_with("lead") |
              starts_with("lag"))) %>%
-  drop_na()
+  drop_na(robbery_gun_r)
