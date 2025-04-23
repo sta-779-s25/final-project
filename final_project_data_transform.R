@@ -46,4 +46,5 @@ castle_dat <- castle_dat |>
   select(!(starts_with("r20") |
              starts_with("trend") |
              starts_with("lead") |
-             starts_with("lag")))
+             starts_with("lag"))) %>%
+  drop_na()
