@@ -23,13 +23,76 @@ library(tidyverse)
 library(knitr)
 library(naniar)
 library(gtsummary)
+library(gt)
+library(broom)
+library(readxl)
+library(propensity)
+library(halfmoon)
+library(patchwork)
 ```
+
 
 ```{r}
-miss_var_summary(castle)[1:3] %>%
-  tbl_summary()
+castle_for_tab <- castle |> 
+  select(!(starts_with("r20") |
+             starts_with("trend") |
+             starts_with("lead") |
+             starts_with("lag"))) 
+
+miss_tab <- miss_var_summary(castle_for_tab)
+colnames(miss_tab) <- c("Variable", "Number Missing", "Percent Missing")
+miss_tab %>%
+  gt()
 ```
 
+```{r, echo = FALSE, warning = FALSE}
+# Data transforms
+castle$treat_year <- ifelse(castle$post == 1, castle$year, 0)
+
+lower <- 1
+upper <- 11
+i <- 1
+while(i < 51){
+  treat_year_1 <- min(castle$treat_year[lower:upper][castle$treat_year[lower:upper] != 0])
+  castle$treat_year[lower:upper] <- rep(treat_year_1, 11)
+  lower <- upper + 1
+  upper <- lower + 10
+  i <- i + 1
+}
+
+castle <- castle %>%
+  mutate(years_after_treat = year - treat_year)
+
+castle$years_after_treat <- ifelse(castle$years_after_treat == -Inf, NA, castle$years_after_treat)
+
+
+castle <- castle %>%
+  group_by(sid) %>%
+  mutate_at(c("assault", "burglary", "larceny", "motor", "l_larceny", "l_motor", 
+              "l_police", "l_income", "l_exp_subsidy", "l_exp_pubwelfare"), lag) %>%
+  mutate(murder_lag = lag(murder)) %>% 
+  ungroup()
+
+
+castle$sid <- ifelse(as.numeric(castle$sid) > 8, castle$sid - 1, castle$sid)
+
+state_id_ranks <- read_excel("state_id_ranks.xlsx", col_names = FALSE)
+colnames(state_id_ranks) <- c("state", "pop", "sid")
+state_id_ranks <- state_id_ranks %>%
+  select(state, sid)
+castle_dat <- full_join(castle, state_id_ranks, by = "sid")
+
+castle_dat <- castle_dat[castle_dat$year != 2000,]
+
+
+castle_dat <- castle_dat |> 
+  select(!(starts_with("r20") |
+             starts_with("trend") |
+             starts_with("lead") |
+             starts_with("lag"))) %>%
+  drop_na(robbery_gun_r)
+
+```
 
 #DAG
 
@@ -105,10 +168,18 @@ adjustmentSets(castle_dag)
 ```
 
 ```{r}
+castle_select <- castle_dat %>%
+  select(c(post, poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44))
 
-
+tbl_summary(
+  castle_select,
+  by = post
+) %>%
+  add_overall(last = TRUE)
 
 ```
+
+
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
