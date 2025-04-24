@@ -29,6 +29,8 @@ library(readxl)
 library(propensity)
 library(halfmoon)
 library(patchwork)
+
+data("castle")
 ```
 
 
@@ -40,7 +42,7 @@ castle_for_tab <- castle |>
              starts_with("lag"))) 
 
 miss_tab <- miss_var_summary(castle_for_tab)
-colnames(miss_tab) <- c("Variable", "Number Missing", "Percent Missing")
+colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
 miss_tab %>%
   gt()
 ```
@@ -149,7 +151,7 @@ ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
 
 ```
 
-```{r}
+```{r, fig.height=10, fig.width=10}
 ggdag_adjustment_set(castle_dag, text_col = "black") +
   theme_dag()
 adjustmentSets(castle_dag)
@@ -169,7 +171,8 @@ adjustmentSets(castle_dag)
 
 ```{r}
 castle_select <- castle_dat %>%
-  select(c(post, poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44))
+  select(c(post, poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44)) |> 
+  mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine"))
 
 tbl_summary(
   castle_select,

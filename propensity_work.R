@@ -1,7 +1,9 @@
 
-prop_mod <- glm(post ~ poverty + robbery + robbery_gun_r + whitem_15_24 + blackm_15_24 + whitem_25_44 + blackm_25_44, data = castle_dat, family = "binomial")
+prop_mod <- glm(post ~ poverty + robbery + robbery_gun_r +
+                  whitem_15_24 + blackm_15_24 + whitem_25_44 +
+                  blackm_25_44, data = castle_dat, family = "binomial")
 
-# prop_mod <- glm(post ~ assault + burglary + homicide + larceny + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
+# prop_mod <- glm(post ~ assault + burglary + homicide +larceny + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
 
 castle_dat <- prop_mod |>
   augment(type.predict = "response", data = castle_dat) %>%
@@ -13,7 +15,7 @@ castle_dat <- prop_mod |>
 ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post))) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Quit Smoking") +
+  labs(x = "Propensity Score", fill = "Castle Doctrine") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
   ggtitle("Unweighted") +
@@ -114,11 +116,12 @@ p1 <- ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = m
   geom_love() +
   theme_minimal()
 
+#changed w_atm to w_ato
 weighted_for_love <- tidy_smd(
   castle_dat,
   .vars = c(post, poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44),
   .group = post,
-  .wts = c(w_atm)
+  .wts = c(w_ato)
 )
 
 p2 <- ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
