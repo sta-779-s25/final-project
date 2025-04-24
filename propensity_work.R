@@ -842,3 +842,107 @@ p8 <- ggplot(castle_test, aes(x = .fitted, group = post, fill = post)) +
   theme_minimal()
 
 (p5 + p6)/(p7 + p8) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+
+
+#############
+## Checking eCDF plots for my pick
+
+prop_mod_test <- glm(post ~ splines::ns(homicide, 5) + splines::ns(burglary, 6) + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
+
+castle_test <- castle_dat
+
+castle_test <- prop_mod_test |>
+  augment(type.predict = "response", data = castle_dat) %>%
+  mutate(w_atu = wt_atu(.fitted, post, exposure_type = "binary"),
+         w_att = wt_att(.fitted, post, exposure_type = "binary"),
+         w_ate = wt_ate(.fitted, post, exposure_type = "binary"),
+         w_ato = wt_ato(.fitted, post, exposure_type = "binary"))
+
+weighted_for_love <- tidy_smd(
+  castle_test,
+  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
+  .group = post,
+  .wts = c(w_att)
+)
+
+p1 <- ggplot(castle_test, aes(x = burglary, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Burglary", color = "Castle Implemented") +
+  theme_minimal()
+
+p2 <- ggplot(castle_test, aes(x = burglary, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Burglary", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p3 <- ggplot(castle_test, aes(x = assault, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Assault", color = "Castle Implemented") +
+  theme_minimal()
+
+p4 <- ggplot(castle_test, aes(x = assault, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Assault", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p5 <- ggplot(castle_test, aes(x = robbery, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery", color = "Castle Implemented") +
+  theme_minimal()
+
+p6 <- ggplot(castle_test, aes(x = robbery, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p7 <- ggplot(castle_test, aes(x = homicide, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Homicide", color = "Castle Implemented") +
+  theme_minimal()
+
+p8 <- ggplot(castle_test, aes(x = homicide, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Homicide", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p9 <- ggplot(castle_test, aes(x = robbery_gun_r, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery with Gun", color = "Castle Implemented") +
+  theme_minimal()
+
+p10 <- ggplot(castle_test, aes(x = robbery_gun_r, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery with Gun", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p11 <- ggplot(castle_test, aes(x = motor, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Motor", color = "Castle Implemented") +
+  theme_minimal()
+
+p12 <- ggplot(castle_test, aes(x = motor, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Motor", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+(p1+p2)/(p3+p4)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p5+p6)/(p7+p8)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p9+p10)/(p11+p12)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
