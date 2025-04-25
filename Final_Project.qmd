@@ -33,7 +33,6 @@ library(patchwork)
 data("castle")
 ```
 
-
 ```{r}
 castle_for_tab <- castle |> 
   select(!(starts_with("r20") |
@@ -92,7 +91,8 @@ castle_dat <- castle_dat |>
              starts_with("trend") |
              starts_with("lead") |
              starts_with("lag"))) %>%
-  drop_na(robbery_gun_r)
+  drop_na(robbery_gun_r) %>%
+  filter(sid != 13)
 
 ```
 
@@ -145,13 +145,15 @@ castle_dag <- dagify(
 
 ```{r, fig.height=10, fig.width=10}
 ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
+  labs(caption = "DAG") +
   theme_dag()
 
 ```
 
 ```{r, fig.height=10, fig.width=10}
-ggdag_adjustment_set(castle_dag, text_col = "black") +
+ggdag_adjustment_set(castle_dag, text_col = "black", use_labels = "label", text = FALSE) +
   theme_dag()
+
 adjustmentSets(castle_dag)
 
 # use adjustment sets to build propensity score model
@@ -193,17 +195,18 @@ castle_dat <- propensity_model |>
 p1 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post))) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine") +
-  ggtitle("Unweighted") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "Unweighted") +
+  #ggtitle("Unweighted") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
   theme_minimal()
 
 p2 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post), weight = w_att)) +
+  #geom_mirror_histogram(bins = 30, alpha = .6)
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine") +
-  ggtitle("ATT") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", captions = "ATT") +
+  #ggtitle("ATT") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
   theme_minimal()
@@ -211,7 +214,6 @@ p2 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
 p1 + p2 + plot_layout(guides = "collect") & theme(legend.position = "bottom")
 
 ```
-
 
 ```{r}
 weighted_for_love <- tidy_smd(
@@ -226,6 +228,172 @@ ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method,
   theme_minimal()
 ```
 
+```{r}
+
+propensity_model_test <- glm(post ~ homicide + burglary + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
+
+castle_dat_test <- propensity_model_test |>
+  augment(type.predict = "response", data = castle_dat) %>%
+  mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+
+weighted_for_love <- tidy_smd(
+  castle_dat_test,
+  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
+  .group = post,
+  .wts = c(w_att)
+)
+
+ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
+  geom_love() +
+  theme_minimal()
+
+ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
+  #geom_mirror_histogram(bins = 30, alpha = .6)
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", captions = "ATT") +
+  #ggtitle("ATT") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
+  theme_minimal()
+```
+
+```{r}
+set.seed(229425)
+
+standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
+
+df_sim_baseline <- castle_dat %>%
+  select()
+```
+
+```{r}
+standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
+
+castle_dat_exp <- castle_dat %>%
+  filter(is.na(years_after_treat) == FALSE)
+
+castle_dat_minus_2 <- castle_dat_exp %>%
+  mutate(years_after_treat = -2, post = 0)
+
+castle_dat_plus_2 <- castle_dat_exp %>%
+  mutate(years_after_treat = 2, post = 1)
+
+new_data_plus_2 <- standardized_model %>%
+  augment(newdata = castle_dat_plus_2) %>%
+  rename(murder_est = .fitted)
+
+new_data_minus_2 <- standardized_model %>%
+  augment(newdata = castle_dat_minus_2) %>%
+  rename(murder_est = .fitted)
+
+mean(new_data_plus_2$murder_est) - mean(new_data_minus_2$murder_est)
+
+
+
+
+
+# new_data <- tibble(
+#   years_after_treat = rep(seq(min(castle_dat$years_after_treat, na.rm = TRUE)), max(castle_dat$years_after_treat, na.rm = TRUE), 2),
+#   post = rep(c(0, 1), each = 100)
+# )
+# 
+# new_data <- standardized_model %>%
+#   augment(newdata = new_data)
+# 
+# four_prior <- castle_dat |>
+#   mutate(years_after_treat = rep(-4, nrow(castle_dat)))
+# 
+# four_post <- castle_dat |>
+#   mutate(years_after_treat = rep(4, nrow(castle_dat)))
+# 
+# predicted_four_prior <- standardized_model |>
+#   augment(newdata = four_prior) |>
+#   select(four_ = .fitted)
+# 
+# predicted_post <- standardized_model |>
+#   augment(newdata = sixty) |>
+#   select(sixty_posted_minutes = .fitted)
+```
+
+```{r}
+standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
+
+castle_dat_minus_2_yes <- castle_dat %>%
+  mutate(years_after_treat = -2, post = 1)
+
+castle_dat_minus_2_no <- castle_dat %>%
+  mutate(years_after_treat = -2, post = 0)
+
+castle_dat_plus_2_yes <- castle_dat %>%
+  mutate(years_after_treat = 2, post = 1)
+
+castle_dat_plus_2_no <- castle_dat %>%
+  mutate(years_after_treat = 2, post = 0)
+
+
+new_data_plus_2_yes <- standardized_model %>%
+  augment(newdata = castle_dat_plus_2_yes) %>%
+  rename(murder_est = .fitted)
+
+new_data_plus_2_no <- standardized_model %>%
+  augment(newdata = castle_dat_plus_2_no) %>%
+  rename(murder_est = .fitted)
+
+new_data_minus_2_yes <- standardized_model %>%
+  augment(newdata = castle_dat_minus_2_yes) %>%
+  rename(murder_est = .fitted)
+
+new_data_minus_2_no <- standardized_model %>%
+  augment(newdata = castle_dat_minus_2_no) %>%
+  rename(murder_est = .fitted)
+
+(mean(new_data_plus_2_yes$murder_est) - mean(new_data_minus_2_yes$murder_est)) - (mean(new_data_plus_2_no$murder_est) - mean(new_data_minus_2_no$murder_est))
+
+```
+
+```{r}
+standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
+
+castle_dat_minus_4_yes <- castle_dat %>%
+  mutate(years_after_treat = -4, post = 1)
+
+castle_dat_minus_4_no <- castle_dat %>%
+  mutate(years_after_treat = -4, post = 0)
+
+castle_dat_plus_4_yes <- castle_dat %>%
+  mutate(years_after_treat = 4, post = 1)
+
+castle_dat_plus_4_no <- castle_dat %>%
+  mutate(years_after_treat = 4, post = 0)
+
+
+new_data_plus_4_yes <- standardized_model %>%
+  augment(newdata = castle_dat_plus_4_yes) %>%
+  rename(murder_est = .fitted)
+
+new_data_plus_4_no <- standardized_model %>%
+  augment(newdata = castle_dat_plus_4_no) %>%
+  rename(murder_est = .fitted)
+
+new_data_minus_4_yes <- standardized_model %>%
+  augment(newdata = castle_dat_minus_4_yes) %>%
+  rename(murder_est = .fitted)
+
+new_data_minus_4_no <- standardized_model %>%
+  augment(newdata = castle_dat_minus_4_no) %>%
+  rename(murder_est = .fitted)
+
+(mean(new_data_plus_4_yes$murder_est) - mean(new_data_minus_4_yes$murder_est)) - (mean(new_data_plus_4_no$murder_est) - mean(new_data_minus_4_no$murder_est))
+```
+
+
+```{r ref.label = knitr::all_labels()}
+#| echo: true
+#| eval: false
+```
+
+Appendix:
 
 ```{r}
 ggplot(castle_dat, aes(x = burglary, color = factor(post))) + 
@@ -234,11 +402,4 @@ ggplot(castle_dat, aes(x = burglary, color = factor(post))) +
   labs(x = "Burglary", color = "Castle Implemented") +
   ggtitle("ATT") +
   theme_minimal()
-```
-
-
-
-```{r ref.label = knitr::all_labels()}
-#| echo: true
-#| eval: false
 ```
