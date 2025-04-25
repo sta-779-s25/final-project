@@ -281,7 +281,7 @@ ggplot(castle_wts, aes(.fitted, group = factor(post))) +
 ggplot(castle_wts, aes(.fitted, group = factor(post))) +
   geom_mirror_histogram(
     aes(fill = post, weight = w_att),
-    bins = 50,
+    bins = 30,
     alpha = 1) +
   scale_y_continuous(labels = abs) +
   labs(x = "Propensity Score", y= "Count", fill = "Castle Doctrine",
@@ -337,7 +337,7 @@ ggplot(
   )
 ) +
   geom_love() +
-  scale_color_manual(labels = c("Observed","ATO Weighted"),
+  scale_color_manual(labels = c("Observed","ATT Weighted"),
                      values = c("turquoise", "coral")) +
   labs(x = "Absolute Value of Standardized Mean Difference",
          y = "Covariate", title = "Love Plot of Standardized Mean Difference",
@@ -602,10 +602,11 @@ ggplot(
 
 ```{r}
 castle_w_ps_2 <- 
-  glm(post ~ splines::ns(assault, df = 4) +
+  glm(post ~ #splines::ns(assault,2) +
+        assault +
         splines::ns(burglary, df = 6) +
-        homicide +
-        splines::ns(larceny, df = 2) +
+        splines::ns(homicide, df = 5) +
+       # splines::ns(larceny, df = 2) +
         motor + robbery + robbery_gun_r, data = castle_dat, family = binomial()) |> 
     augment(type.predict = "response", data = castle_dat)
 
@@ -630,7 +631,7 @@ ggplot(castle_wts_2, aes(.fitted, group = factor(post))) +
     alpha = 1) +
   scale_y_continuous(labels = abs) +
   labs(x = "Propensity Score", y= "Count", fill = "Castle Doctrine",
-       title = "Mirrored Histograms of Propensity Scores by Castle Doctrine",
+       title = "ATO Mirrored Histograms of Propensity Scores by Castle Doctrine",
        subtitle = "Compared to Unweighted Populations") +
   scale_fill_manual(
     "Castle Doctrine",
@@ -642,11 +643,11 @@ ggplot(castle_wts_2, aes(.fitted, group = factor(post))) +
 ggplot(castle_wts_2, aes(.fitted, group = factor(post))) +
   geom_mirror_histogram(
     aes(fill = post, weight = w_att),
-    bins = 50,
+    bins = 30,
     alpha = 1) +
   scale_y_continuous(labels = abs) +
   labs(x = "Propensity Score", y= "Count", fill = "Castle Doctrine",
-       title = "Mirrored Histograms of Propensity Scores by Castle Doctrine") +
+       title = "ATT Mirrored Histograms of Propensity Scores by Castle Doctrine") +
   scale_fill_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -659,7 +660,7 @@ ggplot(castle_wts_2, aes(.fitted, group = factor(post))) +
 #ATO
 smds <- tidy_smd(
   castle_wts_2,
-  .vars = c(assault, burglary, homicide, larceny, motor, robbery, robbery_gun_r),
+  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
   .group = post,
   .wts = c(w_ato)
 )
@@ -683,7 +684,7 @@ ggplot(
 #ATT
 smds2 <- tidy_smd(
   castle_wts_2,
-  .vars = c(assault, burglary, homicide, larceny, motor, robbery, robbery_gun_r),
+  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
   .group = post,
   .wts = c(w_att)
 )
@@ -698,7 +699,7 @@ ggplot(
   )
 ) +
   geom_love() +
-  scale_color_manual(labels = c("Observed","ATO Weighted"),
+  scale_color_manual(labels = c("Observed","ATT Weighted"),
                      values = c("turquoise", "coral")) +
   labs(x = "Absolute Value of Standardized Mean Difference",
          y = "Covariate", title = "Love Plot of Standardized Mean Difference",
@@ -731,7 +732,7 @@ ggplot(
   aes(x = robbery_gun_r,
       color = factor(post))
 ) +
-  geom_ecdf(aes(weights = w_ato)) +
+  geom_ecdf(aes(weights = w_att)) +
   scale_color_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -765,7 +766,7 @@ ggplot(
   aes(x = robbery,
       color = factor(post))
 ) +
-  geom_ecdf(aes(weights = w_ato)) +
+  geom_ecdf(aes(weights = w_att)) +
   scale_color_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -801,7 +802,7 @@ ggplot(
   aes(x = motor,
       color = factor(post))
 ) +
-  geom_ecdf(aes(weights = w_ato)) +
+  geom_ecdf(aes(weights = w_att)) +
   scale_color_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -837,7 +838,7 @@ ggplot(
   aes(x = larceny,
       color = factor(post))
 ) +
-  geom_ecdf(aes(weights = w_ato)) +
+  geom_ecdf(aes(weights = w_att)) +
   scale_color_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -873,7 +874,7 @@ ggplot(
   aes(x = homicide,
       color = factor(post))
 ) +
-  geom_ecdf(aes(weights = w_ato)) +
+  geom_ecdf(aes(weights = w_att)) +
   scale_color_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -909,7 +910,7 @@ ggplot(
   aes(x = burglary,
       color = factor(post))
 ) +
-  geom_ecdf(aes(weights = w_ato)) +
+  geom_ecdf(aes(weights = w_att)) +
   scale_color_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -945,7 +946,7 @@ ggplot(
   aes(x = assault,
       color = factor(post))
 ) +
-  geom_ecdf(aes(weights = w_ato)) +
+  geom_ecdf(aes(weights = w_att)) +
   scale_color_manual(
     "Castle Doctrine",
     values = c("turquoise", "coral"),
@@ -954,6 +955,30 @@ ggplot(
   labs(x = "Assault Rate", y = "Proportion <= x",
        title = "Emperical CDFs of Assault",
        subtitle = "Comparisson of Pre/Post Castle Doctrine")
+
+
+```
+
+
+```{r}
+
+#ATT TABLE
+svy_des <- svydesign(
+  ids = ~1,
+  data = castle_wts_2,
+  weights = ~ w_att
+)
+
+hdr <- paste0(
+  "**{level}**  \n",
+  "N = {n_unweighted}; ESS = {format(n, digits = 1, nsmall = 1)}"
+)
+
+tbl_svysummary(svy_des, by = post,
+               include = c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r)
+               )|> 
+    add_overall(last = TRUE) |> 
+  add_ess_header(header = hdr)
 
 
 ```

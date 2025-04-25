@@ -15,7 +15,7 @@ castle_dat <- prop_mod |>
 ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post))) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Castle Doctrine") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
   ggtitle("Unweighted") +
