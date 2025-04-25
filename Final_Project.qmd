@@ -104,11 +104,10 @@ castle_dat <- castle_dat |>
 castle_dag <- dagify(
   murder ~ young_male_race + poverty + popwt + robbery_gun_r + l_police + post + years_after_treat + robbery,
   
-  post ~ homicide + robbery_gun_r + assault + burglary + larceny + motor + murder_lag + robbery,
+  post ~ homicide + robbery_gun_r + assault + burglary + motor + murder_lag + robbery,
   
   burglary ~ poverty + young_male_race,
   homicide ~ poverty + young_male_race,
-  larceny ~ poverty + young_male_race,
   motor ~ poverty + young_male_race,
   robbery ~ poverty + young_male_race,
   assault ~ poverty + young_male_race,
@@ -137,7 +136,6 @@ castle_dag <- dagify(
     robbery = "Robbery",
     assault = "Assaults",
     burglary = "Burglary",
-    larceny = "Larceny",
     motor = "Auto Theft",
     l_income = "Income")
 )
@@ -171,7 +169,7 @@ adjustmentSets(castle_dag)
 
 ```{r}
 castle_select <- castle_dat %>%
-  select(c(post, poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44)) |> 
+  select(c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r)) |> 
   mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine"))
 
 tbl_summary(
@@ -180,6 +178,62 @@ tbl_summary(
 ) %>%
   add_overall(last = TRUE)
 
+```
+
+```{r}
+propensity_model <- glm(post ~ splines::ns(homicide, 5) + splines::ns(burglary, 6) + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
+
+castle_dat <- propensity_model |>
+  augment(type.predict = "response", data = castle_dat) %>%
+  mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+
+```
+
+```{r}
+p1 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post))) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine") +
+  ggtitle("Unweighted") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
+  theme_minimal()
+
+p2 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine") +
+  ggtitle("ATT") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
+  theme_minimal()
+
+p1 + p2 + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+
+```
+
+
+```{r}
+weighted_for_love <- tidy_smd(
+  castle_dat,
+  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
+  .group = post,
+  .wts = c(w_att)
+)
+
+ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
+  geom_love() +
+  theme_minimal()
+```
+
+
+```{r}
+ggplot(castle_dat, aes(x = burglary, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Burglary", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
 ```
 
 
