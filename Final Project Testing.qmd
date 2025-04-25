@@ -322,7 +322,7 @@ ggplot(
 #ATT
 smds2 <- tidy_smd(
   castle_wts,
-  .vars = c(assault, burglary, homicide, larceny, motor, robbery, robbery_gun_r),
+  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
   .group = post,
   .wts = c(w_att)
 )
