@@ -491,7 +491,7 @@ estimate_df
 ```{r}
 set.seed(779)
 
-n_bootstrap <- 10000
+n_bootstrap <- 1000
 
 bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
                            "mean_ATT" = rep(NA, 4),
