@@ -419,7 +419,7 @@ for (j in years_pre_post){
     boot_dat_minus_j_no <- boot_dat %>%
       mutate(years_after_treat = -1*j, post = 0)
     
-    boot_dat_plus_j_yes <- castle_dat %>%
+    boot_dat_plus_j_yes <- boot_dat %>%
       mutate(years_after_treat = j, post = 1)
     
     boot_dat_plus_j_no <- boot_dat %>%
