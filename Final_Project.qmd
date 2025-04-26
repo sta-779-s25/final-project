@@ -198,17 +198,17 @@ p1 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "Unweighted") +
   #ggtitle("Unweighted") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
   theme_minimal()
 
 p2 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   #geom_mirror_histogram(bins = 30, alpha = .6)
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", captions = "ATT") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "ATT") +
   #ggtitle("ATT") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
   theme_minimal()
 
 p1 + p2 + plot_layout(guides = "collect") & theme(legend.position = "bottom")
@@ -254,7 +254,7 @@ ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
   labs(x = "Propensity Score", fill = "Passed Castle Doctrine", captions = "ATT") +
   #ggtitle("ATT") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("cyan1", "indianred")) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
   theme_minimal()
 ```
 
@@ -387,14 +387,62 @@ new_data_minus_4_no <- standardized_model %>%
 (mean(new_data_plus_4_yes$murder_est) - mean(new_data_minus_4_yes$murder_est)) - (mean(new_data_plus_4_no$murder_est) - mean(new_data_minus_4_no$murder_est))
 ```
 
+```{r}
+years_pre_post <- c(1:4)
+
+estimate_df <- data.frame("years_pre_post" = years_pre_post,
+                           "ATT_est" = rep(NA, 4))
+
+for (j in years_pre_post){
+    
+    standardized_model <- lm(murder ~ post*years_after_treat,
+                        data = castle_dat, weights = w_att)
+    
+    castle_dat_minus_j_yes <- castle_dat %>%
+      mutate(years_after_treat = -1*j, post = 1)
+  
+    castle_dat_minus_j_no <- castle_dat %>%
+      mutate(years_after_treat = -1*j, post = 0)
+    
+    castle_dat_plus_j_yes <- castle_dat %>%
+      mutate(years_after_treat = j, post = 1)
+    
+    castle_dat_plus_j_no <- castle_dat %>%
+      mutate(years_after_treat = j, post = 0)
+    
+    new_data_plus_j_yes <- standardized_model %>%
+      augment(newdata = castle_dat_plus_j_yes) %>%
+      rename(murder_est = .fitted)
+    
+    new_data_plus_j_no <- standardized_model %>%
+      augment(newdata = castle_dat_plus_j_no) %>%
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_yes <- standardized_model %>%
+      augment(newdata = castle_dat_minus_j_yes) %>%
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_no <- standardized_model %>%
+      augment(newdata = castle_dat_minus_j_no) %>%
+      rename(murder_est = .fitted)
+    
+    estimate_df$years_pre_post[j] <- j
+    
+    estimate_df$ATT_est[j] <- (mean(new_data_plus_j_yes$murder_est) -
+                                 mean(new_data_minus_j_yes$murder_est)) -
+                              (mean(new_data_plus_j_no$murder_est) -
+                                 mean(new_data_minus_j_no$murder_est))
+  }
+estimate_df
+```
+
+
 # Uncertainty:
 
 ```{r}
 set.seed(779)
 
 n_bootstrap <- 1000
-
-years_pre_post <- c(1:4)
 
 bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
                            "mean_ATT" = rep(NA, 4),
@@ -453,9 +501,9 @@ for (j in years_pre_post){
   
   bootstrap_df$ci.u[j] <- quantile(bootstrap_est, 0.975)
 }
+
+bootstrap_df
 ```
-
-
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
