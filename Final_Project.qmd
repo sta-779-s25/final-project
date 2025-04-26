@@ -42,7 +42,7 @@ castle_for_tab <- castle |>
 
 miss_tab <- miss_var_summary(castle_for_tab)
 colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
-miss_tab %>%
+miss_tab |>
   gt()
 ```
 
@@ -61,17 +61,17 @@ while(i < 51){
   i <- i + 1
 }
 
-castle <- castle %>%
+castle <- castle |>
   mutate(years_after_treat = year - treat_year)
 
 castle$years_after_treat <- ifelse(castle$years_after_treat == -Inf, NA, castle$years_after_treat)
 
 
-castle <- castle %>%
-  group_by(sid) %>%
+castle <- castle |>
+  group_by(sid) |>
   mutate_at(c("assault", "burglary", "larceny", "motor", "l_larceny", "l_motor", 
-              "l_police", "l_income", "l_exp_subsidy", "l_exp_pubwelfare"), lag) %>%
-  mutate(murder_lag = lag(murder)) %>% 
+              "l_police", "l_income", "l_exp_subsidy", "l_exp_pubwelfare"), lag) |>
+  mutate(murder_lag = lag(murder)) |> 
   ungroup()
 
 
@@ -79,7 +79,7 @@ castle$sid <- ifelse(as.numeric(castle$sid) > 8, castle$sid - 1, castle$sid)
 
 state_id_ranks <- read_excel("state_id_ranks.xlsx", col_names = FALSE)
 colnames(state_id_ranks) <- c("state", "pop", "sid")
-state_id_ranks <- state_id_ranks %>%
+state_id_ranks <- state_id_ranks |>
   select(state, sid)
 castle_dat <- full_join(castle, state_id_ranks, by = "sid")
 
@@ -90,8 +90,8 @@ castle_dat <- castle_dat |>
   select(!(starts_with("r20") |
              starts_with("trend") |
              starts_with("lead") |
-             starts_with("lag"))) %>%
-  drop_na(robbery_gun_r) %>%
+             starts_with("lag"))) |>
+  drop_na(robbery_gun_r) |>
   filter(sid != 13)
 
 ```
@@ -170,14 +170,14 @@ adjustmentSets(castle_dag)
 ```
 
 ```{r}
-castle_select <- castle_dat %>%
+castle_select <- castle_dat |>
   select(c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r)) |> 
   mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine"))
 
 tbl_summary(
   castle_select,
   by = post
-) %>%
+) |>
   add_overall(last = TRUE)
 
 ```
@@ -186,7 +186,7 @@ tbl_summary(
 propensity_model <- glm(post ~ splines::ns(homicide, 5) + splines::ns(burglary, 6) + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
 
 castle_dat <- propensity_model |>
-  augment(type.predict = "response", data = castle_dat) %>%
+  augment(type.predict = "response", data = castle_dat) |>
   mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
 
 ```
@@ -233,7 +233,7 @@ ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method,
 propensity_model_test <- glm(post ~ homicide + burglary + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
 
 castle_dat_test <- propensity_model_test |>
-  augment(type.predict = "response", data = castle_dat) %>%
+  augment(type.predict = "response", data = castle_dat) |>
   mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
 
 weighted_for_love <- tidy_smd(
@@ -263,28 +263,28 @@ set.seed(229425)
 
 standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
 
-df_sim_baseline <- castle_dat %>%
+df_sim_baseline <- castle_dat |>
   select()
 ```
 
 ```{r}
 standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
 
-castle_dat_exp <- castle_dat %>%
+castle_dat_exp <- castle_dat |>
   filter(is.na(years_after_treat) == FALSE)
 
-castle_dat_minus_2 <- castle_dat_exp %>%
+castle_dat_minus_2 <- castle_dat_exp |>
   mutate(years_after_treat = -2, post = 0)
 
-castle_dat_plus_2 <- castle_dat_exp %>%
+castle_dat_plus_2 <- castle_dat_exp |>
   mutate(years_after_treat = 2, post = 1)
 
-new_data_plus_2 <- standardized_model %>%
-  augment(newdata = castle_dat_plus_2) %>%
+new_data_plus_2 <- standardized_model |>
+  augment(newdata = castle_dat_plus_2) |>
   rename(murder_est = .fitted)
 
-new_data_minus_2 <- standardized_model %>%
-  augment(newdata = castle_dat_minus_2) %>%
+new_data_minus_2 <- standardized_model |>
+  augment(newdata = castle_dat_minus_2) |>
   rename(murder_est = .fitted)
 
 mean(new_data_plus_2$murder_est) - mean(new_data_minus_2$murder_est)
@@ -298,7 +298,7 @@ mean(new_data_plus_2$murder_est) - mean(new_data_minus_2$murder_est)
 #   post = rep(c(0, 1), each = 100)
 # )
 # 
-# new_data <- standardized_model %>%
+# new_data <- standardized_model |>
 #   augment(newdata = new_data)
 # 
 # four_prior <- castle_dat |>
@@ -319,33 +319,33 @@ mean(new_data_plus_2$murder_est) - mean(new_data_minus_2$murder_est)
 ```{r}
 standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
 
-castle_dat_minus_2_yes <- castle_dat %>%
+castle_dat_minus_2_yes <- castle_dat |>
   mutate(years_after_treat = -2, post = 1)
 
-castle_dat_minus_2_no <- castle_dat %>%
+castle_dat_minus_2_no <- castle_dat |>
   mutate(years_after_treat = -2, post = 0)
 
-castle_dat_plus_2_yes <- castle_dat %>%
+castle_dat_plus_2_yes <- castle_dat |>
   mutate(years_after_treat = 2, post = 1)
 
-castle_dat_plus_2_no <- castle_dat %>%
+castle_dat_plus_2_no <- castle_dat |>
   mutate(years_after_treat = 2, post = 0)
 
 
-new_data_plus_2_yes <- standardized_model %>%
-  augment(newdata = castle_dat_plus_2_yes) %>%
+new_data_plus_2_yes <- standardized_model |>
+  augment(newdata = castle_dat_plus_2_yes) |>
   rename(murder_est = .fitted)
 
-new_data_plus_2_no <- standardized_model %>%
-  augment(newdata = castle_dat_plus_2_no) %>%
+new_data_plus_2_no <- standardized_model |>
+  augment(newdata = castle_dat_plus_2_no) |>
   rename(murder_est = .fitted)
 
-new_data_minus_2_yes <- standardized_model %>%
-  augment(newdata = castle_dat_minus_2_yes) %>%
+new_data_minus_2_yes <- standardized_model |>
+  augment(newdata = castle_dat_minus_2_yes) |>
   rename(murder_est = .fitted)
 
-new_data_minus_2_no <- standardized_model %>%
-  augment(newdata = castle_dat_minus_2_no) %>%
+new_data_minus_2_no <- standardized_model |>
+  augment(newdata = castle_dat_minus_2_no) |>
   rename(murder_est = .fitted)
 
 (mean(new_data_plus_2_yes$murder_est) - mean(new_data_minus_2_yes$murder_est)) - (mean(new_data_plus_2_no$murder_est) - mean(new_data_minus_2_no$murder_est))
@@ -355,33 +355,33 @@ new_data_minus_2_no <- standardized_model %>%
 ```{r}
 standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
 
-castle_dat_minus_4_yes <- castle_dat %>%
+castle_dat_minus_4_yes <- castle_dat |>
   mutate(years_after_treat = -4, post = 1)
 
-castle_dat_minus_4_no <- castle_dat %>%
+castle_dat_minus_4_no <- castle_dat |>
   mutate(years_after_treat = -4, post = 0)
 
-castle_dat_plus_4_yes <- castle_dat %>%
+castle_dat_plus_4_yes <- castle_dat |>
   mutate(years_after_treat = 4, post = 1)
 
-castle_dat_plus_4_no <- castle_dat %>%
+castle_dat_plus_4_no <- castle_dat |>
   mutate(years_after_treat = 4, post = 0)
 
 
-new_data_plus_4_yes <- standardized_model %>%
-  augment(newdata = castle_dat_plus_4_yes) %>%
+new_data_plus_4_yes <- standardized_model |>
+  augment(newdata = castle_dat_plus_4_yes) |>
   rename(murder_est = .fitted)
 
-new_data_plus_4_no <- standardized_model %>%
-  augment(newdata = castle_dat_plus_4_no) %>%
+new_data_plus_4_no <- standardized_model |>
+  augment(newdata = castle_dat_plus_4_no) |>
   rename(murder_est = .fitted)
 
-new_data_minus_4_yes <- standardized_model %>%
-  augment(newdata = castle_dat_minus_4_yes) %>%
+new_data_minus_4_yes <- standardized_model |>
+  augment(newdata = castle_dat_minus_4_yes) |>
   rename(murder_est = .fitted)
 
-new_data_minus_4_no <- standardized_model %>%
-  augment(newdata = castle_dat_minus_4_no) %>%
+new_data_minus_4_no <- standardized_model |>
+  augment(newdata = castle_dat_minus_4_no) |>
   rename(murder_est = .fitted)
 
 (mean(new_data_plus_4_yes$murder_est) - mean(new_data_minus_4_yes$murder_est)) - (mean(new_data_plus_4_no$murder_est) - mean(new_data_minus_4_no$murder_est))
@@ -398,32 +398,32 @@ for (j in years_pre_post){
     standardized_model <- lm(murder ~ post*years_after_treat,
                         data = castle_dat, weights = w_att)
     
-    castle_dat_minus_j_yes <- castle_dat %>%
+    castle_dat_minus_j_yes <- castle_dat |>
       mutate(years_after_treat = -1*j, post = 1)
   
-    castle_dat_minus_j_no <- castle_dat %>%
+    castle_dat_minus_j_no <- castle_dat |>
       mutate(years_after_treat = -1*j, post = 0)
     
-    castle_dat_plus_j_yes <- castle_dat %>%
+    castle_dat_plus_j_yes <- castle_dat |>
       mutate(years_after_treat = j, post = 1)
     
-    castle_dat_plus_j_no <- castle_dat %>%
+    castle_dat_plus_j_no <- castle_dat |>
       mutate(years_after_treat = j, post = 0)
     
-    new_data_plus_j_yes <- standardized_model %>%
-      augment(newdata = castle_dat_plus_j_yes) %>%
+    new_data_plus_j_yes <- standardized_model |>
+      augment(newdata = castle_dat_plus_j_yes) |>
       rename(murder_est = .fitted)
     
-    new_data_plus_j_no <- standardized_model %>%
-      augment(newdata = castle_dat_plus_j_no) %>%
+    new_data_plus_j_no <- standardized_model |>
+      augment(newdata = castle_dat_plus_j_no) |>
       rename(murder_est = .fitted)
     
-    new_data_minus_j_yes <- standardized_model %>%
-      augment(newdata = castle_dat_minus_j_yes) %>%
+    new_data_minus_j_yes <- standardized_model |>
+      augment(newdata = castle_dat_minus_j_yes) |>
       rename(murder_est = .fitted)
     
-    new_data_minus_j_no <- standardized_model %>%
-      augment(newdata = castle_dat_minus_j_no) %>%
+    new_data_minus_j_no <- standardized_model |>
+      augment(newdata = castle_dat_minus_j_no) |>
       rename(murder_est = .fitted)
     
     estimate_df$years_pre_post[j] <- j
@@ -461,32 +461,32 @@ for (j in years_pre_post){
     standardized_boot <- lm(murder ~ post*years_after_treat,
                         data = boot_dat, weights = w_att)
     
-    boot_dat_minus_j_yes <- boot_dat %>%
+    boot_dat_minus_j_yes <- boot_dat |>
       mutate(years_after_treat = -1*j, post = 1)
   
-    boot_dat_minus_j_no <- boot_dat %>%
+    boot_dat_minus_j_no <- boot_dat |>
       mutate(years_after_treat = -1*j, post = 0)
     
-    boot_dat_plus_j_yes <- boot_dat %>%
+    boot_dat_plus_j_yes <- boot_dat |>
       mutate(years_after_treat = j, post = 1)
     
-    boot_dat_plus_j_no <- boot_dat %>%
+    boot_dat_plus_j_no <- boot_dat |>
       mutate(years_after_treat = j, post = 0)
     
-    new_data_plus_j_yes <- standardized_boot %>%
-      augment(newdata = boot_dat_plus_j_yes) %>%
+    new_data_plus_j_yes <- standardized_boot |>
+      augment(newdata = boot_dat_plus_j_yes) |>
       rename(murder_est = .fitted)
     
-    new_data_plus_j_no <- standardized_boot %>%
-      augment(newdata = boot_dat_plus_j_no) %>%
+    new_data_plus_j_no <- standardized_boot |>
+      augment(newdata = boot_dat_plus_j_no) |>
       rename(murder_est = .fitted)
     
-    new_data_minus_j_yes <- standardized_boot %>%
-      augment(newdata = boot_dat_minus_j_yes) %>%
+    new_data_minus_j_yes <- standardized_boot |>
+      augment(newdata = boot_dat_minus_j_yes) |>
       rename(murder_est = .fitted)
     
-    new_data_minus_j_no <- standardized_boot %>%
-      augment(newdata = boot_dat_minus_j_no) %>%
+    new_data_minus_j_no <- standardized_boot |>
+      augment(newdata = boot_dat_minus_j_no) |>
       rename(murder_est = .fitted)
     
     bootstrap_est[b] <- (mean(new_data_plus_j_yes$murder_est) - mean(new_data_minus_j_yes$murder_est)) -   (mean(new_data_plus_j_no$murder_est) - mean(new_data_minus_j_no$murder_est))
