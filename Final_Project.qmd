@@ -387,6 +387,75 @@ new_data_minus_4_no <- standardized_model %>%
 (mean(new_data_plus_4_yes$murder_est) - mean(new_data_minus_4_yes$murder_est)) - (mean(new_data_plus_4_no$murder_est) - mean(new_data_minus_4_no$murder_est))
 ```
 
+# Uncertainty:
+
+```{r}
+set.seed(779)
+
+n_bootstrap <- 1000
+
+years_pre_post <- c(1:4)
+
+bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
+                           "mean_ATT" = rep(NA, 4),
+                           "sd_ATT" = rep(NA, 4),
+                           "ci.l" = rep(NA, 4),
+                           "ci.u" = rep(NA, 4))
+
+for (j in years_pre_post){
+  
+  bootstrap_est <- vector(length = n_bootstrap)
+  
+  for (b in 1:n_bootstrap){
+    boot_dat <- castle_dat |> 
+      slice_sample(n = nrow(castle_dat), replace = T)
+    
+    standardized_boot <- lm(murder ~ post*years_after_treat,
+                        data = boot_dat, weights = w_att)
+    
+    boot_dat_minus_j_yes <- boot_dat %>%
+      mutate(years_after_treat = -1*j, post = 1)
+  
+    boot_dat_minus_j_no <- boot_dat %>%
+      mutate(years_after_treat = -1*j, post = 0)
+    
+    boot_dat_plus_j_yes <- castle_dat %>%
+      mutate(years_after_treat = j, post = 1)
+    
+    boot_dat_plus_j_no <- boot_dat %>%
+      mutate(years_after_treat = j, post = 0)
+    
+    new_data_plus_j_yes <- standardized_boot %>%
+      augment(newdata = boot_dat_plus_j_yes) %>%
+      rename(murder_est = .fitted)
+    
+    new_data_plus_j_no <- standardized_boot %>%
+      augment(newdata = boot_dat_plus_j_no) %>%
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_yes <- standardized_boot %>%
+      augment(newdata = boot_dat_minus_j_yes) %>%
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_no <- standardized_boot %>%
+      augment(newdata = boot_dat_minus_j_no) %>%
+      rename(murder_est = .fitted)
+    
+    bootstrap_est[b] <- (mean(new_data_plus_j_yes$murder_est) - mean(new_data_minus_j_yes$murder_est)) -   (mean(new_data_plus_j_no$murder_est) - mean(new_data_minus_j_no$murder_est))
+    
+  }
+  
+  bootstrap_df$mean_ATT[j] <- mean(bootstrap_est)
+  
+  bootstrap_df$sd_ATT[j] <- sd(bootstrap_est)
+  
+  bootstrap_df$ci.l[j] <- quantile(bootstrap_est, 0.025)
+  
+  bootstrap_df$ci.u[j] <- quantile(bootstrap_est, 0.975)
+}
+```
+
+
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
