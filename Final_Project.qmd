@@ -32,6 +32,7 @@ library(patchwork)
 library(visdat)
 library(survey)
 library(labelled)
+library(tipr)
 
 data("castle")
 ```
@@ -490,7 +491,7 @@ estimate_df
 ```{r}
 set.seed(779)
 
-n_bootstrap <- 1000
+n_bootstrap <- 10000
 
 bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
                            "mean_ATT" = rep(NA, 4),
@@ -552,6 +553,87 @@ for (j in years_pre_post){
 
 bootstrap_df
 ```
+
+# Sensitivity Analysis:
+
+```{r}
+#Unmeasured confounder to make significant negative effect - 1 year pre/post
+ci.u <- bootstrap_df[1,"ci.u"]
+
+adjust_df <- adjust_coef(
+  effect_observed = ci.u,
+  exposure_confounder_effect = rep(seq(0, -1, by = -0.05), each = 7),
+  confounder_outcome_effect = rep(seq(-1, -7, by = -1), times = 21),
+  verbose = FALSE
+)
+
+ggplot(
+  adjust_df,
+  aes(
+    x = exposure_confounder_effect,
+    y = effect_adjusted,
+    group = confounder_outcome_effect
+  )
+) +
+  geom_hline(yintercept = ci.u, lty = 2) +
+  geom_hline(yintercept = 0, lty = 3) +
+  geom_point() +
+  geom_line() +
+  geom_label(
+    data = adjust_df[141:147, ],
+    aes(
+      x = exposure_confounder_effect,
+      y = effect_adjusted,
+      label = confounder_outcome_effect
+    )
+  ) +
+  labs(
+    x = "Exposure - unmeasured confounder effect",
+    y = "Adjusted Effect",
+    title = "Effect of Unmeasured Confounder on Treatment Effect"
+  )
+
+
+```
+
+```{r}
+#Unmeasured confounder to make significant positive effect - 1 year pre/post
+adjust_df <- adjust_coef(
+  effect_observed = ci.l,
+  exposure_confounder_effect = rep(seq(0, -1, by = -0.05), each = 7),
+  confounder_outcome_effect = rep(seq(1, 7, by = 1), times = 21),
+  verbose = FALSE
+)
+
+ggplot(
+  adjust_df,
+  aes(
+    x = exposure_confounder_effect,
+    y = effect_adjusted,
+    group = confounder_outcome_effect
+  )
+) +
+  geom_hline(yintercept = ci.l, lty = 2) +
+  geom_hline(yintercept = 0, lty = 3) +
+  geom_point() +
+  geom_line() +
+  geom_label(
+    data = adjust_df[141:147, ],
+    aes(
+      x = exposure_confounder_effect,
+      y = effect_adjusted,
+      label = confounder_outcome_effect
+    )
+  ) +
+  labs(
+    x = "Exposure - unmeasured confounder effect",
+    y = "Adjusted Effect",
+    title = "Effect of Unmeasured Confounder on Treatment Effect"
+  )
+
+
+```
+
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
