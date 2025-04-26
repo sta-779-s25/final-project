@@ -29,6 +29,8 @@ library(readxl)
 library(propensity)
 library(halfmoon)
 library(patchwork)
+library(visdat)
+library(survey)
 
 data("castle")
 ```
@@ -44,6 +46,8 @@ miss_tab <- miss_var_summary(castle_for_tab)
 colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
 miss_tab |>
   gt()
+
+vis_miss(castle_for_tab)
 ```
 
 ```{r, echo = FALSE, warning = FALSE}
@@ -85,7 +89,7 @@ castle_dat <- full_join(castle, state_id_ranks, by = "sid")
 
 castle_dat <- castle_dat[castle_dat$year != 2000,]
 
-
+#CCA + Dropping Washington
 castle_dat <- castle_dat |> 
   select(!(starts_with("r20") |
              starts_with("trend") |
@@ -192,6 +196,31 @@ castle_dat <- propensity_model |>
 ```
 
 ```{r}
+castle_select2 <- castle_dat |>
+  select(c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r, w_att)) |> 
+  mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine"))
+
+svy_des <- svydesign(
+  ids = ~1,
+  data = castle_select2,
+  weights = ~w_att
+)
+
+hdr <- paste0(
+  "**{level}**  \n",
+  "N = {n_unweighted}; ESS = {format(n, digits = 1, nsmall = 1)}"
+)
+
+tbl_svysummary(svy_des,
+               by = post,
+               include = c(assault, burglary, homicide, motor, robbery, robbery_gun_r))|> 
+    add_overall(last = TRUE) |> 
+  add_ess_header(header = hdr) |> 
+  modify_caption("**Table 2: Sample Characteristics by Re-Weighted Castle Doctrine**")
+
+```
+
+```{r}
 p1 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post))) +
   theme(legend.position = "bottom") +
@@ -229,7 +258,7 @@ ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method,
 ```
 
 ```{r}
-
+# non-splined model
 propensity_model_test <- glm(post ~ homicide + burglary + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
 
 castle_dat_test <- propensity_model_test |>
@@ -251,7 +280,7 @@ ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
   #geom_mirror_histogram(bins = 30, alpha = .6)
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", captions = "ATT") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "ATT") +
   #ggtitle("ATT") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
@@ -288,9 +317,6 @@ new_data_minus_2 <- standardized_model |>
   rename(murder_est = .fitted)
 
 mean(new_data_plus_2$murder_est) - mean(new_data_minus_2$murder_est)
-
-
-
 
 
 # new_data <- tibble(
@@ -509,6 +535,12 @@ bootstrap_df
 #| echo: true
 #| eval: false
 ```
+
+# Sensitivity Analysis
+
+
+
+
 
 Appendix:
 
