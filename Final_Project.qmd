@@ -598,10 +598,12 @@ ggplot(
 
 ```{r}
 #Unmeasured confounder to make significant positive effect - 1 year pre/post
+ci.l <- bootstrap_df[1,"ci.l"]
+
 adjust_df <- adjust_coef(
   effect_observed = ci.l,
-  exposure_confounder_effect = rep(seq(0, -1, by = -0.05), each = 7),
-  confounder_outcome_effect = rep(seq(1, 7, by = 1), times = 21),
+  exposure_confounder_effect = rep(seq(0, 1, by = 0.05), each = 7),
+  confounder_outcome_effect = rep(seq(-1, -7, by = -1), times = 21),
   verbose = FALSE
 )
 
