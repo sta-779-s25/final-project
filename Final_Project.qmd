@@ -1,6 +1,6 @@
 ---
-title: "Title"
-author: "Authors"
+title: "Final Project"
+author: "Hugh Ford and Lauren Chandler-Holtz"
 format:
   pdf:
     fontsize: 12pt
@@ -37,7 +37,7 @@ library(tipr)
 data("castle")
 ```
 
-```{r}
+```{r, fig.caption = "Missing Data Visualization"}
 castle_for_tab <- castle |> 
   select(!(starts_with("r20") |
              starts_with("trend") |
@@ -75,7 +75,7 @@ castle$years_after_treat <- ifelse(castle$years_after_treat == -Inf, NA, castle$
 
 castle <- castle |>
   group_by(sid) |>
-  mutate_at(c("assault", "burglary", "larceny", "motor", "l_larceny", "l_motor", 
+  mutate_at(c("assault", "burglary", "homicide", "larceny", "motor", "l_larceny", "l_motor", 
               "l_police", "l_income", "l_exp_subsidy", "l_exp_pubwelfare"), lag) |>
   mutate(murder_lag = lag(murder)) |> 
   ungroup()
@@ -83,11 +83,11 @@ castle <- castle |>
 
 castle$sid <- ifelse(as.numeric(castle$sid) > 8, castle$sid - 1, castle$sid)
 
-state_id_ranks <- read_excel("state_id_ranks.xlsx", col_names = FALSE)
-colnames(state_id_ranks) <- c("state", "pop", "sid")
-state_id_ranks <- state_id_ranks |>
+state_id_list <- read_excel("state_id_list_fixed.xlsx", col_names = FALSE)
+colnames(state_id_list) <- c("state", "pop", "sid")
+state_id_ranks <- state_id_list |>
   select(state, sid)
-castle_dat <- full_join(castle, state_id_ranks, by = "sid")
+castle_dat <- full_join(castle, state_id_list, by = "sid")
 
 castle_dat <- castle_dat[castle_dat$year != 2000,]
 
@@ -98,7 +98,7 @@ castle_dat <- castle_dat |>
              starts_with("lead") |
              starts_with("lag"))) |>
   drop_na(robbery_gun_r) |>
-  filter(sid != 13)
+  filter(sid != 47)
 
 ```
 
@@ -149,14 +149,14 @@ castle_dag <- dagify(
 
 ```
 
-```{r, fig.height=10, fig.width=10}
+```{r, fig.height=10, fig.width=10, fig.caption = "DAG"}
 ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
   labs(caption = "DAG") +
   theme_dag()
 
 ```
 
-```{r, fig.height=10, fig.width=10}
+```{r, fig.height=10, fig.width=10, fig.caption = "DAG w/ Adjustments"}
 ggdag_adjustment_set(castle_dag, text_col = "black", use_labels = "label", text = FALSE) +
   theme_dag()
 
@@ -200,7 +200,7 @@ tbl_summary(
 ```
 
 ```{r}
-propensity_model <- glm(post ~ splines::ns(homicide, 5) + splines::ns(burglary, 6) + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
+propensity_model <- glm(post ~ splines::ns(homicide, 3) + splines::ns(burglary, 2) + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
 
 castle_dat <- propensity_model |>
   augment(type.predict = "response", data = castle_dat) |>
@@ -243,44 +243,66 @@ tbl_svysummary(svy_des,
 
 ```
 
-```{r}
+```{r, fig.caption = "Mirrored Histograms of Propensity Scores"}
 p1 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post))) +
   theme(legend.position = "bottom") +
   labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "Unweighted") +
-  #ggtitle("Unweighted") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
   theme_minimal()
 
 p2 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  #geom_mirror_histogram(bins = 30, alpha = .6)
+  geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
+  labs(x = "Propensity Score", y = "Count") +
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "ATT") +
-  #ggtitle("ATT") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "bottom")
 
-p1 + p2 + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p1 + p2) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
 
+#title = "Mirrored Histogram of Propensity Scores", subtitle = "ATT Weighted") +
 ```
 
-```{r}
+```{r, fig.caption = "Mirrored Histogram, ATT Only"}
+ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+
+```{r, fig.caption = "Love Plot}
+dat_for_love <- castle_dat %>%
+  select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
+
+colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
+
 weighted_for_love <- tidy_smd(
-  castle_dat,
-  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
+  dat_for_love,
+  .vars = c(Assault, Burglary, Homicide, `Motor Vehicle Theft`, Robbery, `Armed Robbery \n with Gun Rate`),
   .group = post,
   .wts = c(w_att)
 )
 
 ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
   geom_love() +
+  scale_color_manual(values = c("coral", "turquoise"), labels = c("Oberserved", "ATT Weighted")) + 
+  labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
   theme_minimal()
 ```
 
-```{r}
+
+
+```{r, fig.caption = "Mirrored Histograms of Propensity Scores No Splines"}
 # non-splined model
 propensity_model_test <- glm(post ~ homicide + burglary + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
 
@@ -288,36 +310,34 @@ castle_dat_test <- propensity_model_test |>
   augment(type.predict = "response", data = castle_dat) |>
   mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
 
-weighted_for_love <- tidy_smd(
-  castle_dat_test,
-  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
-  .group = post,
-  .wts = c(w_att)
-)
-
-ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
-  geom_love() +
-  theme_minimal()
-
 ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
   #geom_mirror_histogram(bins = 30, alpha = .6)
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "ATT") +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "ATT", y = "Count") +
   #ggtitle("ATT") +
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
   theme_minimal()
 ```
 
-```{r}
-set.seed(229425)
-
-standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
-
-df_sim_baseline <- castle_dat |>
-  select()
+```{r, fig.caption = "Love Plot for No Splines"}
+# dat_for_love <- castle_dat_test %>%
+#   select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
+# 
+# colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
+# weighted_for_love <- tidy_smd(
+#   castle_dat_test,
+#   .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
+#   .group = post,
+#   .wts = c(w_att)
+# )
+# 
+# ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
+#   geom_love() +
+#   theme_minimal()
 ```
+
 
 ```{r}
 standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
@@ -485,7 +505,6 @@ for (j in years_pre_post){
 estimate_df
 ```
 
-
 # Uncertainty:
 
 ```{r}
@@ -556,7 +575,7 @@ bootstrap_df
 
 # Sensitivity Analysis:
 
-```{r}
+```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative effect -1"}
 #Unmeasured confounder to make significant negative effect - 1 year pre/post
 ci.u <- bootstrap_df[1,"ci.u"]
 
@@ -596,7 +615,7 @@ ggplot(
 
 ```
 
-```{r}
+```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive effect -1"}
 #Unmeasured confounder to make significant positive effect - 1 year pre/post
 ci.l <- bootstrap_df[1,"ci.l"]
 
@@ -632,29 +651,288 @@ ggplot(
     y = "Adjusted Effect",
     title = "Effect of Unmeasured Confounder on Treatment Effect"
   )
-
-
 ```
 
+# Sensitivity Analysis
+
+Alternate DAG:
+
+```{r}
+propensity_model_alt <- glm(post ~ splines::ns(poverty, 5) + robbery + splines::ns(robbery_gun_r, 4) + whitem_15_24 + blackm_15_24 + whitem_25_44 + blackm_25_44, data = castle_dat, family = "binomial")
+
+castle_dat_alt <- propensity_model_alt |>
+  augment(type.predict = "response", data = castle_dat) |>
+  mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+```
+
+```{r, fig.caption = "Mirrored Histograms of Propensity Scores"}
+p1 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = .6, color = "grey") +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores")#, subtitle = "ATT Weighted") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p2 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
+  #geom_mirror_histogram(bins = 30, alpha = .6)
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores")#, subtitle = "ATT Weighted") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+(p1 + p2) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+```
+
+```{r, fig.caption = "Alternate Love Plot"}
+weighted_for_love_alt <- tidy_smd(
+  castle_dat_alt,
+  .vars = c(poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44),
+  .group = post,
+  .wts = c(w_att)
+)
+
+ggplot(data = weighted_for_love_alt, aes(x = abs(smd), y = variable, group = method, color = method)) +
+  geom_love() +
+  scale_color_manual(values = c("coral", "turquoise"), labels = c("Oberserved", "ATT Weighted")) + 
+  labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
+  theme_minimal()
+```
+
+```{r}
+years_pre_post <- c(1:4)
+
+estimate_df <- data.frame("years_pre_post" = years_pre_post,
+                           "ATT_est" = rep(NA, 4))
+
+for (j in years_pre_post){
+    
+    standardized_model <- lm(murder ~ post*years_after_treat,
+                        data = castle_dat_alt, weights = w_att)
+    
+    castle_dat_minus_j_yes <- castle_dat |>
+      mutate(years_after_treat = -1*j, post = 1)
+  
+    castle_dat_minus_j_no <- castle_dat |>
+      mutate(years_after_treat = -1*j, post = 0)
+    
+    castle_dat_plus_j_yes <- castle_dat |>
+      mutate(years_after_treat = j, post = 1)
+    
+    castle_dat_plus_j_no <- castle_dat |>
+      mutate(years_after_treat = j, post = 0)
+    
+    new_data_plus_j_yes <- standardized_model |>
+      augment(newdata = castle_dat_plus_j_yes) |>
+      rename(murder_est = .fitted)
+    
+    new_data_plus_j_no <- standardized_model |>
+      augment(newdata = castle_dat_plus_j_no) |>
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_yes <- standardized_model |>
+      augment(newdata = castle_dat_minus_j_yes) |>
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_no <- standardized_model |>
+      augment(newdata = castle_dat_minus_j_no) |>
+      rename(murder_est = .fitted)
+    
+    estimate_df$years_pre_post[j] <- j
+    
+    estimate_df$ATT_est[j] <- (mean(new_data_plus_j_yes$murder_est) -
+                                 mean(new_data_minus_j_yes$murder_est)) -
+                              (mean(new_data_plus_j_no$murder_est) -
+                                 mean(new_data_minus_j_no$murder_est))
+  }
+estimate_df
+```
+
+Effect direction is the same, but, especially the further out from implementation we go, the smaller the effect compared to the original DAG.
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
 #| eval: false
 ```
 
-# Sensitivity Analysis
-
-
-
 
 
 Appendix:
 
-```{r}
-ggplot(castle_dat, aes(x = burglary, color = factor(post))) + 
+eCDFS:
+```{r, fig.height=8, fig.width = 8, warning = FALSE, echo = FALSE, fig.caption = "eCDFs"}
+p1 <- ggplot(castle_dat, aes(x = burglary, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Burglary", color = "Castle Implemented") +
+  theme_minimal()
+
+p2 <- ggplot(castle_dat, aes(x = burglary, color = factor(post))) + 
   geom_ecdf(aes(weights = w_att)) +
   theme(legend.position = "bottom") +
   labs(x = "Burglary", color = "Castle Implemented") +
   ggtitle("ATT") +
   theme_minimal()
+
+p3 <- ggplot(castle_dat, aes(x = assault, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Assault", color = "Castle Implemented") +
+  theme_minimal()
+
+p4 <- ggplot(castle_dat, aes(x = assault, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Assault", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p5 <- ggplot(castle_dat, aes(x = robbery, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery", color = "Castle Implemented") +
+  theme_minimal()
+
+p6 <- ggplot(castle_dat, aes(x = robbery, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p7 <- ggplot(castle_dat, aes(x = homicide, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Homicide", color = "Castle Implemented") +
+  theme_minimal()
+
+p8 <- ggplot(castle_dat, aes(x = homicide, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Homicide", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p9 <- ggplot(castle_dat, aes(x = robbery_gun_r, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery with Gun", color = "Castle Implemented") +
+  theme_minimal()
+
+p10 <- ggplot(castle_dat, aes(x = robbery_gun_r, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery with Gun", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p11 <- ggplot(castle_dat, aes(x = motor, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Motor", color = "Castle Implemented") +
+  theme_minimal()
+
+p12 <- ggplot(castle_dat, aes(x = motor, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Motor", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+(p1+p2)/(p3+p4)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p5+p6)/(p7+p8)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p9+p10)/(p11+p12)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+
 ```
+
+
+```{r, fig.caption = "Alternate DAG eCDFs"}
+p1 <- ggplot(castle_dat_alt, aes(x = burglary, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Burglary", color = "Castle Implemented") +
+  theme_minimal()
+
+p2 <- ggplot(castle_dat_alt, aes(x = burglary, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Burglary", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p3 <- ggplot(castle_dat_alt, aes(x = assault, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Assault", color = "Castle Implemented") +
+  theme_minimal()
+
+p4 <- ggplot(castle_dat_alt, aes(x = assault, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Assault", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p5 <- ggplot(castle_dat_alt, aes(x = robbery, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery", color = "Castle Implemented") +
+  theme_minimal()
+
+p6 <- ggplot(castle_dat_alt, aes(x = robbery, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p7 <- ggplot(castle_dat_alt, aes(x = homicide, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Homicide", color = "Castle Implemented") +
+  theme_minimal()
+
+p8 <- ggplot(castle_dat_alt, aes(x = homicide, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Homicide", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p9 <- ggplot(castle_dat_alt, aes(x = robbery_gun_r, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery with Gun", color = "Castle Implemented") +
+  theme_minimal()
+
+p10 <- ggplot(castle_dat_alt, aes(x = robbery_gun_r, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Robbery with Gun", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+p11 <- ggplot(castle_dat_alt, aes(x = motor, color = factor(post))) + 
+  geom_ecdf() +
+  theme(legend.position = "bottom") +
+  labs(x = "Motor", color = "Castle Implemented") +
+  theme_minimal()
+
+p12 <- ggplot(castle_dat_alt, aes(x = motor, color = factor(post))) + 
+  geom_ecdf(aes(weights = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Motor", color = "Castle Implemented") +
+  ggtitle("ATT") +
+  theme_minimal()
+
+(p1+p2)/(p3+p4)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p5+p6)/(p7+p8)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p9+p10)/(p11+p12)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+
+```
+
