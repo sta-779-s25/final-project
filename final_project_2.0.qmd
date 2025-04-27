@@ -262,7 +262,7 @@ ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
 
 ```
 
-```{r, fig.caption = "Mirrored Histogram, ATT Only"}
+```{r, fig.cap = "Mirrored Histogram, ATT Only"}
 ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +

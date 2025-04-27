@@ -83,7 +83,7 @@ castle <- castle |>
 
 castle$sid <- ifelse(as.numeric(castle$sid) > 8, castle$sid - 1, castle$sid)
 
-state_id_list <- read_excel("state_id_list_fixed.xlsx", col_names = FALSE)
+state_id_list <- read_excel("state_id_ranks.xlsx", col_names = FALSE)
 colnames(state_id_list) <- c("state", "pop", "sid")
 state_id_ranks <- state_id_list |>
   select(state, sid)
@@ -138,9 +138,9 @@ castle_dag <- dagify(
     post = "Castle Doctrine",
     years_after_treat = "Years Post Castle",
     
-    homicide = "Homicides",
+    homicide = "Homicide",
     robbery = "Robbery",
-    assault = "Assaults",
+    assault = "Assault",
     burglary = "Burglary",
     motor = "Auto Theft",
     l_income = "Income")
@@ -186,7 +186,7 @@ castle_select <- castle_dat |>
     homicide = "Homicide",
     motor = "Motor Vehicle Theft",
     robbery = "Robbery",
-    robbery_gun_r = "Armed Robbery"
+    robbery_gun_r = "Robbery w. Firearm"
   )
 
 tbl_summary(
@@ -245,7 +245,7 @@ tbl_svysummary(svy_des,
 
 ```{r, fig.caption = "Mirrored Histograms of Propensity Scores"}
 p1 <- ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = .6, aes(fill = factor(post))) +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post))) +
   theme(legend.position = "bottom") +
   labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "Unweighted") +
   scale_y_continuous(labels = abs) +
@@ -280,7 +280,7 @@ ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
 ```
 
 
-```{r, fig.caption = "Love Plot}
+```{r, fig.caption = "Love Plot"}
 dat_for_love <- castle_dat %>%
   select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
 
@@ -295,7 +295,7 @@ weighted_for_love <- tidy_smd(
 
 ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
   geom_love() +
-  scale_color_manual(values = c("coral", "turquoise"), labels = c("Oberserved", "ATT Weighted")) + 
+  scale_color_manual(values = c("coral", "turquoise"), labels = c("Observed", "ATT Weighted")) + 
   labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
   theme_minimal()
 ```
@@ -322,20 +322,20 @@ ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
 ```
 
 ```{r, fig.caption = "Love Plot for No Splines"}
-# dat_for_love <- castle_dat_test %>%
-#   select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
-# 
-# colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
-# weighted_for_love <- tidy_smd(
-#   castle_dat_test,
-#   .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
-#   .group = post,
-#   .wts = c(w_att)
-# )
-# 
-# ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
-#   geom_love() +
-#   theme_minimal()
+dat_for_love <- castle_dat_test %>%
+  select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
+
+colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
+weighted_for_love <- tidy_smd(
+  castle_dat_test,
+  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
+  .group = post,
+  .wts = c(w_att)
+)
+
+ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
+  geom_love() +
+  theme_minimal()
 ```
 
 
@@ -575,7 +575,7 @@ bootstrap_df
 
 # Sensitivity Analysis:
 
-```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative effect -1"}
+```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative Effect -1"}
 #Unmeasured confounder to make significant negative effect - 1 year pre/post
 ci.u <- bootstrap_df[1,"ci.u"]
 
@@ -595,7 +595,7 @@ ggplot(
   )
 ) +
   geom_hline(yintercept = ci.u, lty = 2) +
-  geom_hline(yintercept = 0, lty = 3) +
+  geom_hline(yintercept = 0, lty = 3, color = "red", lwd = 1) +
   geom_point() +
   geom_line() +
   geom_label(
@@ -615,7 +615,7 @@ ggplot(
 
 ```
 
-```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive effect -1"}
+```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive Effect -1"}
 #Unmeasured confounder to make significant positive effect - 1 year pre/post
 ci.l <- bootstrap_df[1,"ci.l"]
 
@@ -635,7 +635,7 @@ ggplot(
   )
 ) +
   geom_hline(yintercept = ci.l, lty = 2) +
-  geom_hline(yintercept = 0, lty = 3) +
+  geom_hline(yintercept = 0, lty = 3, color = "red", lwd = 1) +
   geom_point() +
   geom_line() +
   geom_label(
