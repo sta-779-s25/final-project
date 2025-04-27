@@ -43,11 +43,11 @@ Using data assembled by Cheng Cheng and Mark Hoekstra for their study, Does Stre
 
 # Background
 
-As Cheng and Hoekstra explain in their work, “Castle Doctrine” stems from English Common Law, allowing an exception to the “duty to retreat” while in one’s abode. The history of Castle Doctrine in the US goes back to the 1700s and was expanded during Westward Expansion to include at least the area outside of the home, but also often covered any place one had a legal right to be.  This was more formally codified in 1985, when Colorado passed the “Make My Day” law, which removed any civil or criminal liability for the use of force, including lethal force, against a home invader.  The first state to strengthen their self-defense protections and explicitly expand Castle Doctrine to places outside the home was Florida in 2005, a legal change that was quickly followed by around 20 other states.  Since 2005, Castle Doctrine has spread to the significant majority of US states.  However, these laws vary state to state, with some being or in one’s vehicle.
+As Cheng and Hoekstra explain in their work, “Castle Doctrine” stems from English Common Law, allowing an exception to the “duty to retreat” while in one’s abode. The history of Castle Doctrine in the US goes back to the 1700s and was expanded during Westward Expansion to include at least the area outside of the home, but also often covered any place one had a legal right to be.  This was more formally codified in 1985, when Colorado passed the “Make My Day” law, which removed any civil or criminal liability for the use of force, including lethal force, against a home invader.  The first state to strengthen their self-defense protections and explicitly expand Castle Doctrine to places outside the home was Florida in 2005, a legal change that was quickly followed by around 20 other states.  Since 2005, Castle Doctrine has spread to the significant majority of US states.  However, these laws vary state to state, with some being limited to the home while others are expanded to include other places, e.g., one’s place of work or in one’s vehicle.
 
 Castle Doctrine is distinguished from Stand Your Ground laws in that it specifically applies to the home (possibly expanded to areas such as one’s workplace or car) and allows the use of deadly force, even if disproportionate, while Stand Your Ground typically applies to the much broader category of anywhere one has a legal right to be, but only allows defensive proportional force (including deadly force).
 
-limited to the home while others are expanded to include other places, e.g., one’s place of work Proponents of Castle Doctrine argue that it is a useful deterrent to crime, and makes the U.S. a safer place. Critics, on the other hand, propose that Castle Doctrine laws unnecessarily increase levels of violence.  The purpose of our research is to investigate whether such laws actually play a significant role in states’ murder rates that have passed them.  Note that the murder rate does not include cases that were ruled justifiable homicides.
+ Proponents of Castle Doctrine argue that it is a useful deterrent to crime, and makes the U.S. a safer place. Critics, on the other hand, propose that Castle Doctrine laws unnecessarily increase levels of violence.  The purpose of our research is to investigate whether such laws actually play a significant role in states’ murder rates that have passed them.  Note that the murder rate does not include cases that were ruled justifiable homicides.
 
 # Creating a Directed Acyclic Graph (DAG)
 
@@ -95,6 +95,12 @@ state_id_ranks <- state_id_list |>
 castle_dat <- full_join(castle, state_id_list, by = "sid")
 
 castle_dat <- castle_dat[castle_dat$year != 2000,]
+
+castle_for_tab <- castle_dat |> 
+  select(!(starts_with("r20") |
+             starts_with("trend") |
+             starts_with("lead") |
+             starts_with("lag"))) 
 
 #CCA + Dropping Washington
 castle_dat <- castle_dat |> 
@@ -160,7 +166,7 @@ ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
 
 ## Adjustment Sets
 
-After mapping out our DAG, the next step in our Causal Analysis was identifying potential confounders that we would need to adjust for in our model. There are two possible adjustment sets for our DAG as shown in the plot below. The minimal adjustment set includes homicide, assault, burglary, robbery, robbery involving a firearm, and motor vehicle theft, while the second is made up of robbery, poverty, robbery involving a firearm, and all four male age-race variables (% of Black males age 15-24, % of white males age 15-24, % of black males age 25-44, % of white males age 25-44). 
+After mapping out our DAG, the next step in our Causal Analysis was identifying potential confounders that we would need to adjust for in our model. There are two possible adjustment sets for our DAG as shown in the plot below. The minimal adjustment set includes homicide, assault, burglary, robbery, robbery involving a firearm, and motor vehicle theft, while the second is made up of robbery, poverty, robbery involving a firearm, and all four male age-race variables \(% of Black males age 15-24, \% of white males age 15-24, \% of black males age 25-44, \% of white males age 25-44). 
 
 
 ```{r, fig.height=10, fig.width=10, fig.cap = "DAG w/ Adjustments"}
@@ -176,17 +182,6 @@ In our analysis of missing data, we found that robbery involving a firearm has a
 
 
 ```{r, fig.cap = "Missing Data Visualization"}
-castle_for_tab <- castle |> 
-  select(!(starts_with("r20") |
-             starts_with("trend") |
-             starts_with("lead") |
-             starts_with("lag"))) 
-
-miss_tab <- miss_var_summary(castle_for_tab)
-colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
-miss_tab |>
-  gt()
-
 vis_dat(castle_for_tab)
 ```
 
@@ -632,16 +627,13 @@ Our confidence intervals still include zero and thus the effects are once again 
 
 ## Tipping Point Analysis
 
-<<<<<<< HEAD
 Finally, we assessed the potential impact of an unmeasured confounder on the relationship between Castle Doctrine and Murder Rate. The graph below illustrates how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rate) would bias the estimated effect. Based on the graphs, we can identify tipping points, where the adjusted effect crosses the null.
 
 
 For example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 1 percent and was associated with a probability of 0.35 of not passing a Castle Doctrine law (i.e. -0.35 on the x-axis), then the upper bound of adjusted effect would cross zero, such that the 95\% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
 
-=======
 Finally, we assessed the potential impact of an unmeasured confounder on the causal relationship using a tipping point analysis. Because our effect at 1 through 4 years from implementation was not significant at a 95\% significance level, our tipping point focused on the confounder needed to make the effect significant in either a positive or negative direction. 
 For conciseness, we focused on the effect at 1 year before and after implementation. The graphs below illustrate how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rates) would bias the estimated effect at one year before and after exposure. Based on the graph, we can identify tipping points, where the adjusted effect crosses the null.
->>>>>>> ceb79634e8c574ffe960f4ae649a86d3fc4df15a
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative Effect -1"}
 #Unmeasured confounder to make significant negative effect - 1 year pre/post
@@ -735,6 +727,15 @@ Cheng, Cheng, and Mark Hoekstra. 2013. “Does Strengthening Self-Defense Law De
 ```
 
 # Appendix: {.appendix}
+
+```{r}
+miss_tab <- miss_var_summary(castle_for_tab)
+colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
+
+miss_tab |>
+  gt()
+```
+
 
 ## Model before the splines: {.appendix}
 
