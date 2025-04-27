@@ -13,8 +13,263 @@ abstract:
   This is an abstract
 ---
 
+# Libraries
 
 ```{r}
+library(causaldata)
+library(dagitty)
+library(ggdag)
+library(tidyverse)
+library(knitr)
+library(naniar)
+library(gtsummary)
+library(gt)
+library(broom)
+library(readxl)
+library(propensity)
+library(halfmoon)
+library(patchwork)
+library(visdat)
+library(survey)
+library(labelled)
+library(tipr)
 
+data("castle")
+```
+
+# Missing Data Visualization
+
+```{r, fig.caption = "Missing Data Visualization"}
+castle_for_tab <- castle |> 
+  select(!(starts_with("r20") |
+             starts_with("trend") |
+             starts_with("lead") |
+             starts_with("lag"))) 
+
+miss_tab <- miss_var_summary(castle_for_tab)
+colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
+miss_tab |>
+  gt()
+
+vis_dat(castle_for_tab)
+```
+
+
+# Data Transformations and Cleaning
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+castle$treat_year <- ifelse(castle$post == 1, castle$year, 0)
+
+lower <- 1
+upper <- 11
+i <- 1
+while(i < 51){
+  treat_year_1 <- min(castle$treat_year[lower:upper][castle$treat_year[lower:upper] != 0])
+  castle$treat_year[lower:upper] <- rep(treat_year_1, 11)
+  lower <- upper + 1
+  upper <- lower + 10
+  i <- i + 1
+}
+
+castle <- castle |>
+  mutate(years_after_treat = year - treat_year)
+
+castle$years_after_treat <- ifelse(castle$years_after_treat == -Inf, NA, castle$years_after_treat)
+
+
+castle <- castle |>
+  group_by(sid) |>
+  mutate_at(c("assault", "burglary", "homicide", "larceny", "motor", "l_larceny", "l_motor", 
+              "l_police", "l_income", "l_exp_subsidy", "l_exp_pubwelfare"), lag) |>
+  mutate(murder_lag = lag(murder)) |> 
+  ungroup()
+
+
+castle$sid <- ifelse(as.numeric(castle$sid) > 8, castle$sid - 1, castle$sid)
+
+state_id_list <- read_excel("state_id_list_fixed.xlsx", col_names = FALSE)
+colnames(state_id_list) <- c("state", "pop", "sid")
+state_id_ranks <- state_id_list |>
+  select(state, sid)
+castle_dat <- full_join(castle, state_id_list, by = "sid")
+
+castle_dat <- castle_dat[castle_dat$year != 2000,]
+
+#CCA + Dropping Washington
+castle_dat <- castle_dat |> 
+  select(!(starts_with("r20") |
+             starts_with("trend") |
+             starts_with("lead") |
+             starts_with("lag"))) |>
+  drop_na(robbery_gun_r) |>
+  filter(sid != 47)
+```
+
+# DAG
+
+```{r}
+# young_male_race is taking place of blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44
+
+castle_dag <- dagify(
+  murder ~ young_male_race + poverty + popwt + robbery_gun_r + l_police + post + years_after_treat + robbery,
+  
+  post ~ homicide + robbery_gun_r + assault + burglary + motor + murder_lag + robbery,
+  
+  burglary ~ poverty + young_male_race,
+  homicide ~ poverty + young_male_race,
+  motor ~ poverty + young_male_race,
+  robbery ~ poverty + young_male_race,
+  assault ~ poverty + young_male_race,
+  
+  poverty ~ unemployrt + l_exp_subsidy + l_exp_pubwelfare + l_income,
+  
+  l_police ~ l_income,
+  
+  outcome = "murder",
+  exposure = "post",
+  labels = c(
+    murder = "Murder",
+    murder_lag = "Murder Lagged",
+    unemployrt = "Unemployment",
+    young_male_race = "Male Demo.",
+    poverty = "Poverty",
+    popwt = "Population",
+    robbery_gun_r = "Robbery w. Firearm",
+    l_exp_subsidy = "Subsidy",
+    l_exp_pubwelfare = "Welfare",
+    l_police = "Police",
+    post = "Castle Doctrine",
+    years_after_treat = "Years Post Castle",
+    
+    homicide = "Homicide",
+    robbery = "Robbery",
+    assault = "Assault",
+    burglary = "Burglary",
+    motor = "Auto Theft",
+    l_income = "Income")
+)
+```
+
+```{r, fig.height=10, fig.width=10, fig.caption = "DAG"}
+ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
+  labs(caption = "DAG") +
+  theme_dag()
+```
+
+```{r, fig.height=10, fig.width=10, fig.caption = "DAG w/ Adjustments"}
+ggdag_adjustment_set(castle_dag, text_col = "black",
+                     use_labels = "label",
+                     text = FALSE) +
+  theme_dag()
+```
+
+```{r}
+castle_select <- castle_dat |>
+  select(c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r)) |> 
+  mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine")) |> 
+  set_variable_labels(
+    post = "Passage of Castle Doctrine",
+    assault = "Assault",
+    burglary = "Burglary",
+    homicide = "Homicide",
+    motor = "Motor Vehicle Theft",
+    robbery = "Robbery",
+    robbery_gun_r = "Robbery w. Firearm"
+  )
+
+tbl_summary(
+  castle_select,
+  by = post
+) |>
+  add_overall(last = TRUE) |> 
+  modify_caption("**Table 1: Sample Characteristics by Castle Doctrine**") |> 
+  modify_footnote(everything() ~ "Rates per 100,000 persons")
+```
+
+
+# Propensity Weighting
+
+```{r}
+propensity_model <- glm(post ~ splines::ns(homicide, 3) +
+                          splines::ns(burglary, 2) +
+                          assault + motor + robbery +
+                          robbery_gun_r ,
+                        data = castle_dat,
+                        family = "binomial")
+
+```
+
+```{r}
+ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post))) +
+  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "Unweighted") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+```{r, warning = FALSE}
+castle_dat <- propensity_model |>
+  augment(type.predict = "response", data = castle_dat) |>
+  mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+
+castle_select2 <- castle_dat |>
+  select(c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r, w_att)) |> 
+  mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine")) |> 
+    set_variable_labels(
+    post = "Passage of Castle Doctrine",
+    assault = "Assault",
+    burglary = "Burglary",
+    homicide = "Homicide",
+    motor = "Motor Vehicle Theft",
+    robbery = "Robbery",
+    robbery_gun_r = "Armed Robbery"
+  )
+
+svy_des <- svydesign(
+  ids = ~1,
+  data = castle_select2,
+  weights = ~w_att
+)
+
+hdr <- paste0(
+  "**{level}**  \n",
+  "N = {n_unweighted}; ESS = {format(n, digits = 1, nsmall = 1)}"
+)
+
+tbl_svysummary(svy_des,
+               by = post,
+               include = c(assault, burglary, homicide, motor, robbery, robbery_gun_r))|> 
+    add_overall(last = TRUE) |> 
+  add_ess_header(header = hdr) |> 
+  modify_caption("**Table 2: Sample Characteristics by Re-Weighted Castle Doctrine**") |> 
+  modify_footnote(everything() ~ "Rates per 100,000 persons")
+
+```
+
+```{r}
+ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
+  labs(x = "Propensity Score", y = "Count") +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
+
+```{r, fig.caption = "Mirrored Histogram, ATT Only"}
+ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
 
