@@ -1,0 +1,20 @@
+---
+title: "Final Project"
+author: "Hugh Ford and Lauren Chandler-Holtz"
+format:
+  pdf:
+    fontsize: 12pt
+editor: visual
+execute: 
+  echo: false
+  message: false
+  warning: false
+abstract:
+  This is an abstract
+---
+
+
+```{r}
+
+```
+
