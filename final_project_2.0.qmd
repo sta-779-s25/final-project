@@ -39,24 +39,23 @@ data("castle")
 
 # Causal Question
 
-Using data assembled by Cheng Cheng and Mark Hoekstra for their study, Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine (2013), primarily sourced from the FBI Uniform Crime Reports Summary, we sought to examine the causal relationship between implementing Castle Doctrine and murder rates in the U.S.  Focusing on the “treated” population—states that passed Castle Doctrine laws between 2001 and 2010—we investigated whether states should repeal Castle Doctrine laws in order to bring down murder rates.  Formally, our causal question was: among the states that passed Castle Doctrine laws between 2001 and 2010, did that implementation affect the state’s murder rate?
+Using data assembled by Cheng Cheng and Mark Hoekstra for their study, Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine (2013), primarily sourced from the FBI Uniform Crime Reports Summary, we sought to examine the causal relationship between implementing Castle Doctrine and murder rates in the U.S. Focusing on the “treated” population—states that passed Castle Doctrine laws between 2001 and 2010—we investigated whether states should repeal Castle Doctrine laws in order to bring down murder rates. Formally, our causal question was: among the states that passed Castle Doctrine laws between 2001 and 2010, did that implementation affect the state’s murder rate?
 
 # Background
 
-As Cheng and Hoekstra explain in their work, “Castle Doctrine” stems from English Common Law, allowing an exception to the “duty to retreat” while in one’s abode. The history of Castle Doctrine in the US goes back to the 1700s and was expanded during Westward Expansion to include at least the area outside of the home, but also often covered any place one had a legal right to be.  This was more formally codified in 1985, when Colorado passed the “Make My Day” law, which removed any civil or criminal liability for the use of force, including lethal force, against a home invader.  The first state to strengthen their self-defense protections and explicitly expand Castle Doctrine to places outside the home was Florida in 2005, a legal change that was quickly followed by around 20 other states.  Since 2005, Castle Doctrine has spread to the significant majority of US states.  However, these laws vary state to state, with some being limited to the home while others are expanded to include other places, e.g., one’s place of work or in one’s vehicle.
+As Cheng and Hoekstra explain in their work, “Castle Doctrine” stems from English Common Law, allowing an exception to the “duty to retreat” while in one’s abode. The history of Castle Doctrine in the US goes back to the 1700s and was expanded during Westward Expansion to include at least the area outside of the home, but also often covered any place one had a legal right to be. This was more formally codified in 1985, when Colorado passed the “Make My Day” law, which removed any civil or criminal liability for the use of force, including lethal force, against a home invader. The first state to strengthen their self-defense protections and explicitly expand Castle Doctrine to places outside the home was Florida in 2005, a legal change that was quickly followed by around 20 other states. Since 2005, Castle Doctrine has spread to the significant majority of US states. However, these laws vary state to state, with some being limited to the home while others are expanded to include other places, e.g., one’s place of work or in one’s vehicle.
 
 Castle Doctrine is distinguished from Stand Your Ground laws in that it specifically applies to the home (possibly expanded to areas such as one’s workplace or car) and allows the use of deadly force, even if disproportionate, while Stand Your Ground typically applies to the much broader category of anywhere one has a legal right to be, but only allows defensive proportional force (including deadly force).
 
- Proponents of Castle Doctrine argue that it is a useful deterrent to crime, and makes the U.S. a safer place. Critics, on the other hand, propose that Castle Doctrine laws unnecessarily increase levels of violence.  The purpose of our research is to investigate whether such laws actually play a significant role in states’ murder rates that have passed them.  Note that the murder rate does not include cases that were ruled justifiable homicides.
+Proponents of Castle Doctrine argue that it is a useful deterrent to crime, and makes the U.S. a safer place. Critics, on the other hand, propose that Castle Doctrine laws unnecessarily increase levels of violence. The purpose of our research is to investigate whether such laws actually play a significant role in states’ murder rates that have passed them. Note that the murder rate does not include cases that were ruled justifiable homicides.
 
 # Creating a Directed Acyclic Graph (DAG)
 
-We began by creating a DAG to represent the causal relationships between variables in our dataset. First, we specified our outcome as the state’s murder rate per 100,000 citizens and our exposure as passing a “Castle Doctrine” law between 2001 and 2010.  We then identified several covariates we thought would play important causal roles in relation to murder rate and whether a state would pass a Castle Doctrine law.
+We began by creating a DAG to represent the causal relationships between variables in our dataset. First, we specified our outcome as the state’s murder rate per 100,000 citizens and our exposure as passing a “Castle Doctrine” law between 2001 and 2010. We then identified several covariates we thought would play important causal roles in relation to murder rate and whether a state would pass a Castle Doctrine law.
 
-For example, we believed that the murder rate as well as the decision to pass a Castle Doctrine Law could depend on the state’s demographics as well as the prevalence of certain crimes in the year prior, such as robbery with a firearm, assault, and even murder itself, as these crimes would likely create an atmosphere of fear that would sway voters and politicians to pass such a law. In our analysis, we lagged all the crime variables (homicide, assault, motor vehicle theft, etc.)  by one year, so we were able to accurately capture their causal effect on the next year.
+For example, we believed that the murder rate as well as the decision to pass a Castle Doctrine Law could depend on the state’s demographics as well as the prevalence of certain crimes in the year prior, such as robbery with a firearm, assault, and even murder itself, as these crimes would likely create an atmosphere of fear that would sway voters and politicians to pass such a law. In our analysis, we lagged all the crime variables (homicide, assault, motor vehicle theft, etc.) by one year, so we were able to accurately capture their causal effect on the next year.
 
 Our full DAG illustrating the causal relationships we believe are present is shown below.
-
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 castle$treat_year <- ifelse(castle$post == 1, castle$year, 0)
@@ -100,7 +99,8 @@ castle_for_tab <- castle_dat |>
   select(!(starts_with("r20") |
              starts_with("trend") |
              starts_with("lead") |
-             starts_with("lag"))) 
+             starts_with("lag") |
+             starts_with("years"))) 
 
 #CCA + Dropping Washington
 castle_dat <- castle_dat |> 
@@ -163,23 +163,20 @@ ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
 
 # Adjustments and Missing Data
 
-
 ## Adjustment Sets
 
-After mapping out our DAG, the next step in our Causal Analysis was identifying potential confounders that we would need to adjust for in our model. There are two possible adjustment sets for our DAG as shown in the plot below. The minimal adjustment set includes homicide, assault, burglary, robbery, robbery involving a firearm, and motor vehicle theft, while the second is made up of robbery, poverty, robbery involving a firearm, and all four male age-race variables \(% of Black males age 15-24, \% of white males age 15-24, \% of black males age 25-44, \% of white males age 25-44). 
+After mapping out our DAG, the next step in our Causal Analysis was identifying potential confounders that we would need to adjust for in our model. There are two possible adjustment sets for our DAG as shown in the plot below. The minimal adjustment set includes homicide, assault, burglary, robbery, robbery involving a firearm, and motor vehicle theft, while the second is made up of robbery, poverty, robbery involving a firearm, and all four male age-race variables (% of Black males age 15-24, % of white males age 15-24, % of black males age 25-44, % of white males age 25-44).
 
-
-```{r, fig.height=10, fig.width=10, fig.cap = "DAG w/ Adjustments"}
+```{r, fig.height=9, fig.width=10, fig.cap = "DAG w/ Adjustments"}
 ggdag_adjustment_set(castle_dag, text_col = "black",
                      use_labels = "label",
                      text = FALSE) +
   theme_dag()
 ```
+
 ## Missing Data
 
-In our analysis of missing data, we found that robbery involving a firearm has about 1.09\% missing data (6 observations), and is only missing for one state, Washington.  No other variables include missing data.  Due to the low level of missingness and the fact that Washington did not implement Castle Doctrine (which is far and away the larger class), we proceed with a complete case analysis and drop the state of Washington from consideration.
-
-
+In our analysis of missing data, we found that robbery involving a firearm has about 1.09% missing data (6 observations), and is only missing for one state, Washington. No other variables include missing data. Due to the low level of missingness and the fact that Washington did not implement Castle Doctrine (which is far and away the larger class), we proceed with a complete case analysis and drop the state of Washington from consideration.
 
 ```{r, fig.cap = "Missing Data Visualization"}
 vis_dat(castle_for_tab)
@@ -210,11 +207,11 @@ tbl_summary(
 
 # Propensity Weighting
 
-We will use propensity scores in our analysis, which help us simulate what the relationship between exposure (implementing Castle Doctrine) and outcome (murder rates) would have looked like if our data was from a randomized trial instead of observational. Since we are interested in the effect on the treated states, we will use the inverse probability weight for the Average Treatment Effect Among the Treated (ATT) to estimate the ATT using propensity score weighting.  Here, the propensity score for each observation is the probability of the state implementing Castle Doctrine given their particular covariate values. To simplify our model, we used the minimum adjustment set to identify confounders to include.  We use logistic regression to calculate these probabilities with the model shown below: 
+We will use propensity scores in our analysis, which help us simulate what the relationship between exposure (implementing Castle Doctrine) and outcome (murder rates) would have looked like if our data was from a randomized trial instead of observational. Since we are interested in the effect on the treated states, we will use the inverse probability weight for the Average Treatment Effect Among the Treated (ATT) to estimate the ATT using propensity score weighting. Here, the propensity score for each observation is the probability of the state implementing Castle Doctrine given their particular covariate values. To simplify our model, we used the minimum adjustment set to identify confounders to include. We use logistic regression to calculate these probabilities with the model shown below:
 
 $log\_odds_i = S_{1:3}(Homicide_i) + S_{1:2}(Burglary_i) + Assault_i + MotorTheft_i + Robbery_i + ArmedRobbery_i$
 
-## Unweighted 
+## Unweighted
 
 Before ATT weighting, we see we have a very large class imbalance and the majority of the propensity scores are between 0 and .2.
 
@@ -257,7 +254,6 @@ ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
 
 ```
 
-
 ```{r, fig.cap = "Mirrored Histogram, ATT Only"}
 ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
@@ -269,7 +265,7 @@ ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   theme(legend.position = "bottom")
 ```
 
-After plotting the propensity scores in a mirrored histogram, we do not see any clear positivity issues, and the Love plot shown below illustrates that the variables are well-balanced on the mean. 
+After plotting the propensity scores in a mirrored histogram, we do not see any clear positivity issues, and the Love plot shown below illustrates that the variables are well-balanced on the mean.
 
 ```{r, fig.cap = "Love Plot"}
 dat_for_love <- castle_dat %>%
@@ -291,7 +287,7 @@ ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method,
   theme_minimal()
 ```
 
-Additionally, we compared the empirical CDFs (eCDFs) of our confounders. While we were unable to achieve perfect correspondence between the two subpopulations through weighting, with the addition of splines Homicide and Burglary, brought the empirical CDFs closer together (see appendix).  Overall, our assumptions appear to be sufficiently met, and we will proceed with our effect calculations.
+Additionally, we compared the empirical CDFs (eCDFs) of our confounders. While we were unable to achieve perfect correspondence between the two subpopulations through weighting, with the addition of splines Homicide and Burglary, brought the empirical CDFs closer together (see appendix). Overall, our assumptions appear to be sufficiently met, and we will proceed with our effect calculations.
 
 ADD TABLE STUFF
 
@@ -331,10 +327,9 @@ tbl_svysummary(svy_des,
 
 ```
 
-
 # G-Computation
 
-To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using the model $____$ [insert model] and the ATT weighting from our IPW model.
+To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using the model ___ and the ATT weighting from our IPW model.
 
 We simulated counterfactual data for each year for four years post and prior to enactment of Castle Doctrine laws. We then took the difference in murder rates between the years post and prior for Castle Doctrine data and the difference in murder rates between the years post and prior for Non-Castle Doctrine data. We then performed a pseudo-Difference in Differences analysis to estimate the treatment effect of Castle Doctrine across different years.
 
@@ -398,13 +393,12 @@ estimate_df |>
 
 # Measures of Uncertainty
 
-In order to understand the uncertainty in our estimates, we used bootstrap methodology, resampling our data 1000 times to create a synthetic distribution of estimates. Taking the upper and lower $\alpha/2$-level quantiles, we were able to get an estimate for lower and upper bounds on each of our estimates.  All four confidence intervals include zero, so none of our effects are statistically significant at the 95% level.
-
+In order to understand the uncertainty in our estimates, we used bootstrap methodology, resampling our data 1000 times to create a synthetic distribution of estimates. Taking the upper and lower $0.05/2$-level quantiles, we were able to get an estimate for lower and upper bounds on each of our estimates. All four confidence intervals include zero, so none of our effects are statistically significant at the 95% level.
 
 ```{r}
 set.seed(779)
 
-n_bootstrap <- 1000
+n_bootstrap <- 10
 
 bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
                            "mean_ATT" = rep(NA, 4),
@@ -474,11 +468,13 @@ bootstrap_df |>
 
 ```
 
+
+
 # Sensitivity Analysis:
 
 ## Alternate Adjustment Set:
 
-First, we do an alternate DAG analysis.  If our variables are well-measured and our DAG is correct, then we would expect each different adjustment set to result in very similar effects (each adjustment set should produce an unbiased estimate of the true causal effect).  However, we see that the effects for the alternative adjustment set are notably smaller than those for the initial adjustment set—the effect direction is the same, but, especially the further out from implementation we go, the smaller the effect compared to the original DAG.  This discrepancy strongly suggests that the causal structure specified in our DAG is incorrect; we made some alterations to the DAG, such as connecting the police presence variable to crime variables, but there was little to no change in the results.
+First, we do an alternate DAG analysis. If our variables are well-measured and our DAG is correct, then we would expect each different adjustment set to result in very similar effects (each adjustment set should produce an unbiased estimate of the true causal effect). However, we see that the effects for the alternative adjustment set are notably smaller than those for the initial adjustment set—the effect direction is the same, but, especially the further out from implementation we go, the smaller the effect compared to the original DAG. This discrepancy strongly suggests that the causal structure specified in our DAG is incorrect; we made some alterations to the DAG, such as connecting the police presence variable to crime variables, but there was little to no change in the results.
 
 ```{r}
 propensity_model_alt <- glm(post ~ splines::ns(poverty, 5) + robbery + splines::ns(robbery_gun_r, 4) + whitem_15_24 + blackm_15_24 + whitem_25_44 + blackm_25_44, data = castle_dat, family = "binomial")
@@ -533,16 +529,20 @@ for (j in years_pre_post){
                                  mean(new_data_minus_j_yes$murder_est)) -
                               (mean(new_data_plus_j_no$murder_est) -
                                  mean(new_data_minus_j_no$murder_est))
-  }
+}
+
+estimate_df$ATT_est <- round(estimate_df$ATT_est, 3)
+
+colnames(estimate_df) <- c("Years Before After \n Castle Doctrine", "ATT Point Est.")
+
 estimate_df %>%
   gt()
 ```
 
-
 ```{r}
 set.seed(779)
 
-n_bootstrap <- 1000
+n_bootstrap <- 10
 
 bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
                            "mean_ATT" = rep(NA, 4),
@@ -622,18 +622,16 @@ bootstrap_df_names_clean |>
   gt()
 
 ```
-Our confidence intervals still include zero and thus the effects are once again not significant.
 
+Our confidence intervals still include zero and thus the effects are once again not significant.
 
 ## Tipping Point Analysis
 
 Finally, we assessed the potential impact of an unmeasured confounder on the relationship between Castle Doctrine and Murder Rate. The graph below illustrates how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rate) would bias the estimated effect. Based on the graphs, we can identify tipping points, where the adjusted effect crosses the null.
 
+For example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 1 percent and was associated with a probability of 0.35 of not passing a Castle Doctrine law (i.e. -0.35 on the x-axis), then the upper bound of adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
 
-For example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 1 percent and was associated with a probability of 0.35 of not passing a Castle Doctrine law (i.e. -0.35 on the x-axis), then the upper bound of adjusted effect would cross zero, such that the 95\% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
-
-Finally, we assessed the potential impact of an unmeasured confounder on the causal relationship using a tipping point analysis. Because our effect at 1 through 4 years from implementation was not significant at a 95\% significance level, our tipping point focused on the confounder needed to make the effect significant in either a positive or negative direction. 
-For conciseness, we focused on the effect at 1 year before and after implementation. The graphs below illustrate how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rates) would bias the estimated effect at one year before and after exposure. Based on the graph, we can identify tipping points, where the adjusted effect crosses the null.
+Finally, we assessed the potential impact of an unmeasured confounder on the causal relationship using a tipping point analysis. Because our effect at 1 through 4 years from implementation was not significant at a 95% significance level, our tipping point focused on the confounder needed to make the effect significant in either a positive or negative direction. For conciseness, we focused on the effect at 1 year before and after implementation. The graphs below illustrate how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rates) would bias the estimated effect at one year before and after exposure. Based on the graph, we can identify tipping points, where the adjusted effect crosses the null.
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative Effect -1"}
 #Unmeasured confounder to make significant negative effect - 1 year pre/post
@@ -675,7 +673,7 @@ ggplot(
 
 ```
 
-Looking at the negative plot (shown above), we observed that, for example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 1 percent and was associated with a probability of 0.35 of not passing a Castle Doctrine law (i.e. -0.35 on the x-axis), then the upper bound of the adjusted effect would cross zero, such that the 95\% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
+Looking at the negative plot (shown above), we observed that, for example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 1 percent and was associated with a probability of 0.35 of not passing a Castle Doctrine law (i.e. -0.35 on the x-axis), then the upper bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive Effect -1"}
 #Unmeasured confounder to make significant positive effect - 1 year pre/post
@@ -715,11 +713,11 @@ ggplot(
   )
 ```
 
-Looking at the positive plot (shown above), we observe that, if a one standard deviation change in the unmeasured confounder increased murder rate by 3 percent and was associated with a probability of 0.67 of not passing a Castle Doctrine law (i.e. -0.67 on the x-axis), then the lower bound of the adjusted effect would cross zero, such that the 95\% CI for the ATT is entirely positive, representing a significant positive effect on the murder rate. Such a confounder is somewhat less likely than the previous; however, again, given the limitations in our data, more investigation would be needed to completely rule out such a confounder.
+Looking at the positive plot (shown above), we observe that, if a one standard deviation change in the unmeasured confounder increased murder rate by 3 percent and was associated with a probability of 0.67 of not passing a Castle Doctrine law (i.e. -0.67 on the x-axis), then the lower bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely positive, representing a significant positive effect on the murder rate. Such a confounder is somewhat less likely than the previous; however, again, given the limitations in our data, more investigation would be needed to completely rule out such a confounder.
 
 # References
-Cheng, Cheng, and Mark Hoekstra. 2013. “Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine.” Journal of Human Resources 48 (3): 821–54.
 
+Cheng, Cheng, and Mark Hoekstra. 2013. “Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine.” Journal of Human Resources 48 (3): 821–54.
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
@@ -735,7 +733,6 @@ colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
 miss_tab |>
   gt()
 ```
-
 
 ## Model before the splines: {.appendix}
 
