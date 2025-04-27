@@ -719,6 +719,8 @@ Looking at the positive plot (shown above), we observe that, if a one standard d
 
 Cheng, Cheng, and Mark Hoekstra. 2013. “Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine.” Journal of Human Resources 48 (3): 821–54.
 
+Huntington-Klein, N., & Barrett, M. (2024, October 24). Castle Dataset. R PACKAGES. https://r-packages.io/datasets/castle 
+
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
 #| eval: false
