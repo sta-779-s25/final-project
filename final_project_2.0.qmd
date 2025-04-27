@@ -54,7 +54,6 @@ miss_tab |>
 vis_dat(castle_for_tab)
 ```
 
-
 # Data Transformations and Cleaning
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
@@ -186,10 +185,7 @@ tbl_summary(
   modify_footnote(everything() ~ "Rates per 100,000 persons")
 ```
 
-
 # Propensity Weighting
-
-
 
 ```{r}
 propensity_model <- glm(post ~ splines::ns(homicide, 3) +
@@ -274,7 +270,6 @@ ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
-
 
 ```{r, fig.cap = "Love Plot"}
 dat_for_love <- castle_dat %>%
@@ -431,20 +426,282 @@ bootstrap_df |>
 
 ```
 
+# Sensitivity Analysis:
 
+
+## Alternate Adjustment Set:
+
+```{r}
+propensity_model_alt <- glm(post ~ splines::ns(poverty, 5) + robbery + splines::ns(robbery_gun_r, 4) + whitem_15_24 + blackm_15_24 + whitem_25_44 + blackm_25_44, data = castle_dat, family = "binomial")
+
+castle_dat_alt <- propensity_model_alt |>
+  augment(type.predict = "response", data = castle_dat) |>
+  mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+```
+
+```{r, fig.caption = "Mirrored Histograms of Propensity Scores"}
+p1 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+p2 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+(p1 + p2) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+```
+
+```{r, fig.caption = "Alternate Love Plot"}
+weighted_for_love_alt <- tidy_smd(
+  castle_dat_alt,
+  .vars = c(poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44),
+  .group = post,
+  .wts = c(w_att)
+)
+
+ggplot(data = weighted_for_love_alt, aes(x = abs(smd), y = variable, group = method, color = method)) +
+  geom_love() +
+  scale_color_manual(values = c("coral", "turquoise"), labels = c("Oberserved", "ATT Weighted")) + 
+  labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
+  theme_minimal()
+```
+
+```{r}
+years_pre_post <- c(1:4)
+
+estimate_df <- data.frame("years_pre_post" = years_pre_post,
+                           "ATT_est" = rep(NA, 4))
+
+for (j in years_pre_post){
+    
+    standardized_model <- lm(murder ~ post*years_after_treat,
+                        data = castle_dat_alt, weights = w_att)
+    
+    castle_dat_minus_j_yes <- castle_dat_alt |>
+      mutate(years_after_treat = -1*j, post = 1)
+  
+    castle_dat_minus_j_no <- castle_dat_alt |>
+      mutate(years_after_treat = -1*j, post = 0)
+    
+    castle_dat_plus_j_yes <- castle_dat_alt |>
+      mutate(years_after_treat = j, post = 1)
+    
+    castle_dat_plus_j_no <- castle_dat_alt |>
+      mutate(years_after_treat = j, post = 0)
+    
+    new_data_plus_j_yes <- standardized_model |>
+      augment(newdata = castle_dat_plus_j_yes) |>
+      rename(murder_est = .fitted)
+    
+    new_data_plus_j_no <- standardized_model |>
+      augment(newdata = castle_dat_plus_j_no) |>
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_yes <- standardized_model |>
+      augment(newdata = castle_dat_minus_j_yes) |>
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_no <- standardized_model |>
+      augment(newdata = castle_dat_minus_j_no) |>
+      rename(murder_est = .fitted)
+    
+    estimate_df$years_pre_post[j] <- j
+    
+    estimate_df$ATT_est[j] <- (mean(new_data_plus_j_yes$murder_est) -
+                                 mean(new_data_minus_j_yes$murder_est)) -
+                              (mean(new_data_plus_j_no$murder_est) -
+                                 mean(new_data_minus_j_no$murder_est))
+  }
+estimate_df
+```
+
+Effect direction is the same, but, especially the further out from implementation we go, the smaller the effect compared to the original DAG.
+
+```{r}
+set.seed(779)
+
+n_bootstrap <- 1000
+
+bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
+                           "mean_ATT" = rep(NA, 4),
+                           "sd_ATT" = rep(NA, 4),
+                           "ci.l" = rep(NA, 4),
+                           "ci.u" = rep(NA, 4))
+
+bootstrap_df_names_clean <- bootstrap_df
+
+for (j in years_pre_post){
+  
+  bootstrap_est <- vector(length = n_bootstrap)
+  
+  for (b in 1:n_bootstrap){
+    boot_dat <- castle_dat |> 
+      slice_sample(n = nrow(castle_dat_alt), replace = T)
+    
+    standardized_boot <- lm(murder ~ post*years_after_treat,
+                        data = boot_dat, weights = w_att)
+    
+    boot_dat_minus_j_yes <- boot_dat |>
+      mutate(years_after_treat = -1*j, post = 1)
+  
+    boot_dat_minus_j_no <- boot_dat |>
+      mutate(years_after_treat = -1*j, post = 0)
+    
+    boot_dat_plus_j_yes <- boot_dat |>
+      mutate(years_after_treat = j, post = 1)
+    
+    boot_dat_plus_j_no <- boot_dat |>
+      mutate(years_after_treat = j, post = 0)
+    
+    new_data_plus_j_yes <- standardized_boot |>
+      augment(newdata = boot_dat_plus_j_yes) |>
+      rename(murder_est = .fitted)
+    
+    new_data_plus_j_no <- standardized_boot |>
+      augment(newdata = boot_dat_plus_j_no) |>
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_yes <- standardized_boot |>
+      augment(newdata = boot_dat_minus_j_yes) |>
+      rename(murder_est = .fitted)
+    
+    new_data_minus_j_no <- standardized_boot |>
+      augment(newdata = boot_dat_minus_j_no) |>
+      rename(murder_est = .fitted)
+    
+    bootstrap_est[b] <- (mean(new_data_plus_j_yes$murder_est) -
+                           mean(new_data_minus_j_yes$murder_est)) -  
+      (mean(new_data_plus_j_no$murder_est) - mean(new_data_minus_j_no$murder_est))
+    
+  }
+  
+  bootstrap_df_names_clean$mean_ATT[j] <- round(mean(bootstrap_est),3)
+  
+  bootstrap_df_names_clean$sd_ATT[j] <- round(sd(bootstrap_est),3)
+  
+  bootstrap_df_names_clean$ci.l[j] <- round(quantile(bootstrap_est, 0.025),3)
+  
+  bootstrap_df_names_clean$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
+  
+  ## Unrounded
+  
+  bootstrap_df$mean_ATT[j] <- round(mean(bootstrap_est),3)
+  
+  bootstrap_df$sd_ATT[j] <- round(sd(bootstrap_est),3)
+  
+  bootstrap_df$ci.l[j] <- round(quantile(bootstrap_est, 0.025),3)
+  
+  bootstrap_df$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
+}
+
+colnames(bootstrap_df_names_clean) <- c("Years Before After \n Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95% CI Lower Bound", "Upper Bound")
+
+bootstrap_df_names_clean |> 
+  gt()
+
+```
+
+## Tipping Point Analysis
+
+
+```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative Effect -1"}
+#Unmeasured confounder to make significant negative effect - 1 year pre/post
+ci.u <- bootstrap_df[1,"ci.u"]
+
+adjust_df <- adjust_coef(
+  effect_observed = ci.u,
+  exposure_confounder_effect = rep(seq(0, -1, by = -0.05), each = 7),
+  confounder_outcome_effect = rep(seq(-1, -7, by = -1), times = 21),
+  verbose = FALSE
+)
+
+ggplot(
+  adjust_df,
+  aes(
+    x = exposure_confounder_effect,
+    y = effect_adjusted,
+    group = confounder_outcome_effect
+  )
+) +
+  geom_hline(yintercept = ci.u, lty = 2) +
+  geom_hline(yintercept = 0, lty = 3, color = "red", lwd = 1) +
+  geom_point() +
+  geom_line() +
+  geom_label(
+    data = adjust_df[141:147, ],
+    aes(
+      x = exposure_confounder_effect,
+      y = effect_adjusted,
+      label = confounder_outcome_effect
+    )
+  ) +
+  labs(
+    x = "Exposure - unmeasured confounder effect",
+    y = "Adjusted Effect",
+    title = "Effect of Unmeasured Confounder on Treatment Effect"
+  )
+
+
+```
+
+```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive Effect -1"}
+#Unmeasured confounder to make significant positive effect - 1 year pre/post
+ci.l <- bootstrap_df[1,"ci.l"]
+
+adjust_df <- adjust_coef(
+  effect_observed = ci.l,
+  exposure_confounder_effect = rep(seq(0, -1, by = -0.05), each = 7),
+  confounder_outcome_effect = rep(seq(1, 7, by = 1), times = 21),
+  verbose = FALSE
+)
+
+ggplot(
+  adjust_df,
+  aes(
+    x = exposure_confounder_effect,
+    y = effect_adjusted,
+    group = confounder_outcome_effect
+  )
+) +
+  geom_hline(yintercept = ci.l, lty = 2) +
+  geom_hline(yintercept = 0, lty = 3, color = "red", lwd = 1) +
+  geom_point() +
+  geom_line() +
+  geom_label(
+    data = adjust_df[141:147, ],
+    aes(
+      x = exposure_confounder_effect,
+      y = effect_adjusted,
+      label = confounder_outcome_effect
+    )
+  ) +
+  labs(
+    x = "Exposure - unmeasured confounder effect",
+    y = "Adjusted Effect",
+    title = "Effect of Unmeasured Confounder on Treatment Effect"
+  )
+```
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
 #| eval: false
 ```
 
-
-
 # Appendix: {.appendix}
 
 ## Model before the splines: {.appendix}
 
 ## Mirrored Histogram: {.appendix}
+
 ```{r, fig.caption = "Mirrored Histograms of Propensity Scores No Splines"}
 propensity_model_test <- glm(post ~ homicide + burglary + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
 
@@ -471,6 +728,7 @@ ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
 ```
 
 ## Love Plot: {.appendix}
+
 ```{r}
 dat_for_love <- castle_dat_test %>%
   select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
