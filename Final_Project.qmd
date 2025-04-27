@@ -557,7 +557,9 @@ for (j in years_pre_post){
       augment(newdata = boot_dat_minus_j_no) |>
       rename(murder_est = .fitted)
     
-    bootstrap_est[b] <- (mean(new_data_plus_j_yes$murder_est) - mean(new_data_minus_j_yes$murder_est)) -   (mean(new_data_plus_j_no$murder_est) - mean(new_data_minus_j_no$murder_est))
+    bootstrap_est[b] <- (mean(new_data_plus_j_yes$murder_est) -
+                           mean(new_data_minus_j_yes$murder_est)) -  
+      (mean(new_data_plus_j_no$murder_est) - mean(new_data_minus_j_no$murder_est))
     
   }
   
@@ -665,13 +667,13 @@ castle_dat_alt <- propensity_model_alt |>
   mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
 ```
 
-```{r, fig.caption = "Mirrored Histograms of Propensity Scores"}
+```{r, fig.cap = "Mirrored Histograms of Propensity Scores"}
 p1 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = .6, color = "grey") +
+  geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores")#, subtitle = "ATT Weighted") +
-  scale_y_continuous(labels = abs) +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores") +
+  #scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -680,7 +682,7 @@ p2 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
   #geom_mirror_histogram(bins = 30, alpha = .6)
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores")#, subtitle = "ATT Weighted") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores")+
   scale_y_continuous(labels = abs) +
   scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
   theme_minimal() +
