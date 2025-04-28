@@ -13,8 +13,6 @@ abstract:
   This is an abstract
 ---
 
-# Libraries
-
 ```{r}
 library(causaldata)
 library(dagitty)
@@ -329,7 +327,9 @@ tbl_svysummary(svy_des,
 
 # G-Computation
 
-To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using the model $Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$ and the ATT weighting from our IPW model.
+To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using the model with ATT weighting from our IPW model:\
+
+$Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$ \
 
 We simulated counterfactual data for each year for four years post and prior to enactment of Castle Doctrine laws. We then took the difference in murder rates between the years post and prior for Castle Doctrine data and the difference in murder rates between the years post and prior for Non-Castle Doctrine data. We then performed a pseudo-Difference in Differences analysis to estimate the treatment effect of Castle Doctrine across different years.
 
@@ -398,7 +398,7 @@ In order to understand the uncertainty in our estimates, we used bootstrap metho
 ```{r}
 set.seed(779)
 
-n_bootstrap <- 10
+n_bootstrap <- 1000
 
 bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
                            "mean_ATT" = rep(NA, 4),
@@ -542,7 +542,7 @@ estimate_df %>%
 ```{r}
 set.seed(779)
 
-n_bootstrap <- 10
+n_bootstrap <- 1000
 
 bootstrap_df <- data.frame("years_pre_post" = years_pre_post,
                            "mean_ATT" = rep(NA, 4),
@@ -557,7 +557,7 @@ for (j in years_pre_post){
   bootstrap_est <- vector(length = n_bootstrap)
   
   for (b in 1:n_bootstrap){
-    boot_dat <- castle_dat |> 
+    boot_dat <- castle_dat_alt |> 
       slice_sample(n = nrow(castle_dat_alt), replace = T)
     
     standardized_boot <- lm(murder ~ post*years_after_treat,
@@ -597,13 +597,13 @@ for (j in years_pre_post){
     
   }
   
-  bootstrap_df_names_clean$mean_ATT[j] <- round(mean(bootstrap_est),3)
+  bootstrap_df_names_clean$mean_ATT[j] <- mean(bootstrap_est)
   
-  bootstrap_df_names_clean$sd_ATT[j] <- round(sd(bootstrap_est),3)
+  bootstrap_df_names_clean$sd_ATT[j] <- sd(bootstrap_est)
   
-  bootstrap_df_names_clean$ci.l[j] <- round(quantile(bootstrap_est, 0.025),3)
+  bootstrap_df_names_clean$ci.l[j] <- quantile(bootstrap_est, 0.025)
   
-  bootstrap_df_names_clean$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
+  bootstrap_df_names_clean$ci.u[j] <- quantile(bootstrap_est, 0.975)
   
   ## Unrounded
   
@@ -959,7 +959,9 @@ p12 <- ggplot(castle_dat, aes(x = motor, color = factor(post))) +
 
 ```
 
-```{r, fig.caption = "Mirrored Histograms of Propensity Scores"}
+## Alternate Adjustment Set: {.appendix}
+
+```{r, fig.caption = "Mirrored Histograms of Propensity Scores, Alternate"}
 p1 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
