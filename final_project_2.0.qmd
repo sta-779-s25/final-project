@@ -329,7 +329,7 @@ tbl_svysummary(svy_des,
 
 # G-Computation
 
-To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using the model ___ and the ATT weighting from our IPW model.
+To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using the model $Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$ and the ATT weighting from our IPW model.
 
 We simulated counterfactual data for each year for four years post and prior to enactment of Castle Doctrine laws. We then took the difference in murder rates between the years post and prior for Castle Doctrine data and the difference in murder rates between the years post and prior for Non-Castle Doctrine data. We then performed a pseudo-Difference in Differences analysis to estimate the treatment effect of Castle Doctrine across different years.
 
