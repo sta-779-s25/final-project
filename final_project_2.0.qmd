@@ -488,7 +488,8 @@ for (j in years_pre_post){
 colnames(bootstrap_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95\\% CI Lower Bound", "Upper Bound")
 
 bootstrap_df |> 
-  kbl(format = "latex", booktabs = TRUE, escape = FALSE) |> 
+  kbl(format = "latex", booktabs = TRUE, escape = FALSE,
+      caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
@@ -502,7 +503,11 @@ bootstrap_df |>
 
 ## Alternate Adjustment Set:
 
-First, we do an alternate DAG analysis. If our variables are well-measured and our DAG is correct, then we would expect each different adjustment set to result in very similar effects (each adjustment set should produce an unbiased estimate of the true causal effect). However, we see that the effects for the alternative adjustment set are notably smaller than those for the initial adjustment set—the effect direction is the same, but, especially the further out from implementation we go, the smaller the effect compared to the original DAG. This discrepancy strongly suggests that the causal structure specified in our DAG is incorrect; we made some alterations to the DAG, such as connecting the police presence variable to crime variables, but there was little to no change in the results.
+To ensure the robustness of our results, we conducted a sensitivity analysis to assess the validity of our DAG structure and the potential impact of unmeasured confounding. First, we explored the causal effect using the alternate adjustment set from the DAG. If the covariates in the models are well-measured and the DAG is specified correctly, then each adjustment set should yield similar treatment effects, as both should provide an unbiased estimate of the true causal effect.
+
+Using the alternative adjustment set--which includes robbery, poverty, robbery involving a firearm, and all four male age-race variables--we refit the propensity score model with a five-degree spline on the poverty variable and a four-degree spline on Robbery involving a Firearm to help balance the subpopulations. Following the same procedure as in our original analysis, we used G-Computation, difference-in-differences, and bootstrapping to obtain confidence intervals for the average treatment effect among the treated population. In **Table 5**, we display the point estimates from the same four time periods of our original analysis. Compared to the point estimates from the minimal adjustment set in **Table 3**, the effects using the alternate adjustment set are attenuated in magnitude. Nevertheless, examining the 95\% confidence intervals in **Table 6**, all confidence intervals still include zero, reinforcing the conclusion that enacting Castle Doctrine did not have a statistically significant impact on murder rate in states that passed such laws.
+
+The discrepancy in point estimates suggests that there may be measurement error in one or more covariates in the dataset or that the DAG does not fully capture the true underlying causal structure at work. To investigate the latter, we made some modifications to the DAG, such as connecting the police presence variable to crime variables; however, we found these changes did not significantly affect our results.
 
 ```{r}
 propensity_model_alt <- glm(post ~ splines::ns(poverty, 5) + robbery + splines::ns(robbery_gun_r, 4) + whitem_15_24 + blackm_15_24 + whitem_25_44 + blackm_25_44, data = castle_dat, family = "binomial")
@@ -564,7 +569,8 @@ estimate_df$ATT_est <- round(estimate_df$ATT_est, 3)
 colnames(estimate_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Point Est.")
 
 estimate_df |> 
-  kbl(format = "latex", booktabs = TRUE, escape = F) |> 
+  kbl(format = "latex", booktabs = TRUE, escape = F,
+      caption = "Alt. Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
@@ -652,7 +658,8 @@ for (j in years_pre_post){
 colnames(bootstrap_df_names_clean) <- c("Years Before/\\\\After Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95\\% CI Lower Bound", "Upper Bound")
 
 bootstrap_df_names_clean |> 
-  kbl(format = "latex", booktabs = TRUE, escape = FALSE) |> 
+  kbl(format = "latex", booktabs = TRUE, escape = FALSE,
+      caption = "Alt. Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
@@ -660,8 +667,6 @@ bootstrap_df_names_clean |>
   )
 
 ```
-
-Our confidence intervals still include zero and thus the effects are once again not significant.
 
 ## Tipping Point Analysis
 
