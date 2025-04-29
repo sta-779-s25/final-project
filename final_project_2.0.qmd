@@ -187,7 +187,7 @@ vis_dat(castle_for_tab)
 
 # Propensity Weighting
 
-We used propensity score weighting in our analysis, which allowed us simulate what the relationship between exposure (implementing Castle Doctrine) and outcome (murder rates) would have looked like if our data had come from a randomized trial instead of being observational. Since we targeted the effect of the policy on the treated states, we employed the inverse probability weight for the Average Treatment Effect Among the Treated (ATT) to estimate the effect. Here, the propensity score for each observation is the probability of the state implementing Castle Doctrine given their particular covariate values. To simplify our model and minimize potential measurement error, we used the minimal adjustment set to identify confounders. We then fit a logistic regression to calculate these probabilities with the model shown below:
+We used inverse propensity score weighting (IPW) in our analysis, which allowed us simulate what the relationship between exposure (implementing Castle Doctrine) and outcome (murder rates) would have looked like if our data had come from a randomized trial instead of being observational. Since we targeted the effect of the policy on the treated states, we employed the inverse probability weight for the Average Treatment Effect Among the Treated (ATT) to estimate the effect. Here, the propensity score for each observation is the probability of the state implementing Castle Doctrine given their particular covariate values. To simplify our model and minimize potential measurement error, we used the minimal adjustment set to identify confounders. We then fit a logistic regression to calculate the probabilities of states passing Castle Doctrine with the model shown below:
 
 $log\_odds_i = S_{1:3}(Homicide_i) + S_{1:2}(Burglary_i) + Assault_i + MotorTheft_i + Robbery_i + ArmedRobbery_i$
 
@@ -212,8 +212,8 @@ tbl_summary(
   by = post
 ) |>
   add_overall(last = TRUE) |> 
-  modify_caption("**Table 1: Sample Characteristics by Castle Doctrine**") |> 
-  modify_footnote(everything() ~ "Rates per 100,000 persons") |> 
+  modify_caption("**Sample Characteristics by Castle Doctrine**") |> 
+  modify_footnote(everything() ~ "Median (Q1, Q3); Rates per 100,000 persons") |>
   as_kable_extra(format = "latex") |>
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
@@ -222,7 +222,7 @@ tbl_summary(
   )
 ```
 
-Before reweighing, we observed a large imbalance between treated and untreated subpopulations. In particular, the distribution of propensity scores for states that had not passed Castle Doctrine laws was highly right skewed, with a majority of the scores falling between 0 and .2.
+Before weighting our subpopulations with IPW, we observe substantial imbalances between the pre and post-Doctrine subpopulations. From **Table 1**, we see the Pre-Doctrine group had 411 observations, with lower median crime rates across all covariates in the adjustment set. This imbalance is also reflected in the distributions of propensity scores, displayed in Figure. The distribution of propensity scores for states that had not passed Castle Doctrine laws is highly right skewed, with a majority of the scores falling between 0.0 and 0.2, while the distribution for post-Castle Doctrine states is spread relatively uniformly from 0.0 to 0.7.
 
 ```{r}
 propensity_model <- glm(post ~ splines::ns(homicide, 3) +
@@ -237,7 +237,7 @@ castle_dat <- propensity_model |>
   mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
 ```
 
-```{r}
+```{r, fig.cap = "Mirrored Histogram, Unweighted"}
 ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post))) +
   labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "Unweighted") +
@@ -331,8 +331,14 @@ tbl_svysummary(svy_des,
                include = c(assault, burglary, homicide, motor, robbery, robbery_gun_r))|> 
     add_overall(last = TRUE) |> 
   add_ess_header(header = hdr) |> 
-  modify_caption("**Table 2: Sample Characteristics by Re-Weighted Castle Doctrine**") |> 
-  modify_footnote(everything() ~ "Rates per 100,000 persons")
+  modify_caption("**Sample Characteristics by Re-Weighted Castle Doctrine**") |> 
+  modify_footnote(everything() ~ "Median (Q1, Q3); Rates per 100,000 persons")|>
+  as_kable_extra(format = "latex") |>
+  kable_styling(
+  latex_options = c("scale_down", "hold_position"),
+  full_width = FALSE,
+  position = "center"
+  )
 
 ```
 
@@ -395,11 +401,16 @@ for (j in years_pre_post){
 
 estimate_df$ATT_est <- round(estimate_df$ATT_est, 3)
 
-colnames(estimate_df) <- c("Years Before After \n Castle Doctrine", "ATT Point Est.")
+colnames(estimate_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Point Est.")
 
 
 estimate_df |> 
-  gt()
+  kbl(format = "latex", booktabs = TRUE, escape = F) |> 
+  kable_styling(
+    latex_options = c("scale_down", "hold_position"),
+    full_width = FALSE,
+    position = "center"
+  )
 ```
 
 # Measures of Uncertainty
@@ -471,10 +482,15 @@ for (j in years_pre_post){
   bootstrap_df$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
 }
 
-colnames(bootstrap_df) <- c("Years Before After \n Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95% CI Lower Bound", "Upper Bound")
+colnames(bootstrap_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95\\% CI Lower Bound", "Upper Bound")
 
 bootstrap_df |> 
-  gt()
+  kbl(format = "latex", booktabs = TRUE, escape = FALSE) |> 
+  kable_styling(
+    latex_options = c("scale_down", "hold_position"),
+    full_width = FALSE,
+    position = "center"
+  )
 
 
 ```
@@ -544,10 +560,15 @@ for (j in years_pre_post){
 
 estimate_df$ATT_est <- round(estimate_df$ATT_est, 3)
 
-colnames(estimate_df) <- c("Years Before After \n Castle Doctrine", "ATT Point Est.")
+colnames(estimate_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Point Est.")
 
-estimate_df %>%
-  gt()
+estimate_df |> 
+  kbl(format = "latex", booktabs = TRUE, escape = F) |> 
+  kable_styling(
+    latex_options = c("scale_down", "hold_position"),
+    full_width = FALSE,
+    position = "center"
+  )
 ```
 
 ```{r}
@@ -608,29 +629,34 @@ for (j in years_pre_post){
     
   }
   
-  bootstrap_df_names_clean$mean_ATT[j] <- mean(bootstrap_est)
+  ## Rounded
+  bootstrap_df_names_clean$mean_ATT[j] <- round(mean(bootstrap_est),3)
   
-  bootstrap_df_names_clean$sd_ATT[j] <- sd(bootstrap_est)
+  bootstrap_df_names_clean$sd_ATT[j] <- round(sd(bootstrap_est),3)
   
-  bootstrap_df_names_clean$ci.l[j] <- quantile(bootstrap_est, 0.025)
+  bootstrap_df_names_clean$ci.l[j] <- round(quantile(bootstrap_est, 0.025),3)
   
-  bootstrap_df_names_clean$ci.u[j] <- quantile(bootstrap_est, 0.975)
+  bootstrap_df_names_clean$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
   
   ## Unrounded
+  bootstrap_df$mean_ATT[j] <- mean(bootstrap_est)
   
-  bootstrap_df$mean_ATT[j] <- round(mean(bootstrap_est),3)
+  bootstrap_df$sd_ATT[j] <- sd(bootstrap_est)
   
-  bootstrap_df$sd_ATT[j] <- round(sd(bootstrap_est),3)
+  bootstrap_df$ci.l[j] <- quantile(bootstrap_est, 0.025)
   
-  bootstrap_df$ci.l[j] <- round(quantile(bootstrap_est, 0.025),3)
-  
-  bootstrap_df$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
+  bootstrap_df$ci.u[j] <- quantile(bootstrap_est, 0.975)
 }
 
-colnames(bootstrap_df_names_clean) <- c("Years Before After \n Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95% CI Lower Bound", "Upper Bound")
+colnames(bootstrap_df_names_clean) <- c("Years Before/\\\\After Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95\\% CI Lower Bound", "Upper Bound")
 
 bootstrap_df_names_clean |> 
-  gt()
+  kbl(format = "latex", booktabs = TRUE, escape = FALSE) |> 
+  kable_styling(
+    latex_options = c("scale_down", "hold_position"),
+    full_width = FALSE,
+    position = "center"
+  )
 
 ```
 
