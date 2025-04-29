@@ -675,7 +675,7 @@ ggplot(
 
 ```
 
-Looking at the negative plot (shown above), we observed that, for example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 1 percent and was associated with a probability of 0.35 of not passing a Castle Doctrine law (i.e. -0.35 on the x-axis), then the upper bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
+Looking at the negative plot (shown above), we observed that, for example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 2 percent and was associated with a probability of 0.45 of not passing a Castle Doctrine law (i.e. -0.45 on the x-axis), then the upper bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive Effect -1"}
 #Unmeasured confounder to make significant positive effect - 1 year pre/post
