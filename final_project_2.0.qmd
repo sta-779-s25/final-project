@@ -191,7 +191,7 @@ We used inverse propensity score weighting (IPW) in our analysis, which allowed 
 
 $log\_odds_i = S_{1:3}(Homicide_i) + S_{1:2}(Burglary_i) + Assault_i + MotorTheft_i + Robbery_i + ArmedRobbery_i$
 
-## Unweighted
+## Unweighted Data
 
 ```{r}
 castle_select <- castle_dat |>
@@ -247,58 +247,7 @@ ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
   theme(legend.position = "bottom")
 ```
 
-## Weighted
-
-```{r, fig.cap = "Mirrored Histogram, Unweighted and Weighted"}
-ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
-  labs(x = "Propensity Score", y = "Count") +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
-  theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
-  scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-
-```
-
-```{r, fig.cap = "Mirrored Histogram, ATT Only"}
-ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
-  theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
-  scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
-  theme_minimal() +
-  theme(legend.position = "bottom")
-```
-
-After plotting the propensity scores in a mirrored histogram, we do not see any clear positivity issues, and the Love plot shown below illustrates that the variables are well-balanced on the mean.
-
-```{r, fig.cap = "Love Plot"}
-dat_for_love <- castle_dat %>%
-  select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
-
-colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
-
-weighted_for_love <- tidy_smd(
-  dat_for_love,
-  .vars = c(Assault, Burglary, Homicide, `Motor Vehicle Theft`, Robbery, `Armed Robbery \n with Gun Rate`),
-  .group = post,
-  .wts = c(w_att)
-)
-
-ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
-  geom_love() +
-  scale_color_manual(values = c("coral", "turquoise"), labels = c("Observed", "ATT Weighted")) + 
-  labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
-  theme_minimal()
-```
-
-Additionally, we compared the empirical CDFs (eCDFs) of our confounders. While we were unable to achieve perfect correspondence between the two subpopulations through weighting, with the addition of splines Homicide and Burglary, brought the empirical CDFs closer together (see appendix). Overall, our assumptions appear to be sufficiently met, and we will proceed with our effect calculations.
-
-ADD TABLE STUFF
+## ATT Weighting
 
 ```{r, warning = FALSE}
 
@@ -342,13 +291,66 @@ tbl_svysummary(svy_des,
 
 ```
 
+```{r, fig.cap = "Mirrored Histogram, Unweighted and Weighted"}
+ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
+  labs(x = "Propensity Score", y = "Count") +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
+
+```{r, fig.cap = "Mirrored Histogram, ATT Only"}
+ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+  theme(legend.position = "bottom") +
+  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
+  scale_y_continuous(labels = abs) +
+  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+To account for the differences across the two subpopulations, we fit the previously-specified propensity score model, predicting a state's probability of passing a Castle Doctrine law based on the covariates in our adjustment set. After reweighting our data, we observe in **Table 2** that the median value of the covariates are much more matched between between Castle Doctrine states and non-Castle Doctrine states.
+
+We display the distributions of the propensity scores for the subpopulations in the mirrored histograms in **Figures 5** and **6**. The distributions of propensity scores in the mirrored histograms demonstrate substantially improved balance between the two groups, and we do not observe any alarming positivity issues. 
+
+We also used a Love Plot (**Figure 7**) to visualize the effect of ATT weighting on the Standardized Mean Difference for each confounding covariate. Before weighting, we observe the SMD for each covariate except for Robbery was relatively large, reflecting the unbalance between Castle Doctrine states and non-Castle Doctrine states across these variables. After re-weighting, we see that the SMDs across the covariates are below the 0.1 threshold, suggesting that the weighting method has balanced the two pseudo-populations across each covariate very effectively. These results align with the conclusions we were able to draw from comparing the unweighted and re-weighted tables.
+
+```{r, fig.cap = "Love Plot"}
+dat_for_love <- castle_dat %>%
+  select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
+
+colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
+
+weighted_for_love <- tidy_smd(
+  dat_for_love,
+  .vars = c(Assault, Burglary, Homicide, `Motor Vehicle Theft`, Robbery, `Armed Robbery \n with Gun Rate`),
+  .group = post,
+  .wts = c(w_att)
+)
+
+ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
+  geom_love() +
+  scale_color_manual(values = c("coral", "turquoise"), labels = c("Observed", "ATT Weighted")) + 
+  labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
+  theme_minimal()
+```
+
+Finally, we compared the empirical cumulative distribution functions (eCDFs) of our confounders. Since all confounders in the adjustment set were continuous, we constructed eCDF plots for each one. Although we were not able to achieve perfect correspondence between the two subpopulations through weighting alone, incorporating second and third degree splines (as reflected in our propensity score model) on Homicide and Burglary helped to bring the eCDFs for those covariates closer together (see Appendix). Overall, our checks suggested that the necessary assumptions for causal inference appeared to be reasonably met, so we proceeded with effect estimation.
+
 # G-Computation
 
-To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using the model with ATT weighting from our IPW model:\
+To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using a linear model that incorporated ATT weights from our IPW model, along with an interaction term representing the number of years before and after enactment of a state's Castle Doctrine law:\
 
 $Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$ \
 
-We simulated counterfactual data for each year for four years post and prior to enactment of Castle Doctrine laws. We then took the difference in murder rates between the years post and prior for Castle Doctrine data and the difference in murder rates between the years post and prior for Non-Castle Doctrine data. We then performed a pseudo-Difference in Differences analysis to estimate the treatment effect of Castle Doctrine across different years.
+We simulated counterfactual data for each of the four years before and after the enactment of Castle Doctrine laws. For each year, we calculated the difference in murder rates between the post- and pre-enactment periods for both Castle Doctrine states and non-Castle Doctrine states. We then conducted a pseudo–difference-in-differences analysis to estimate the treatment effect of Castle Doctrine across time.
 
 ```{r}
 standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
@@ -494,8 +496,6 @@ bootstrap_df |>
 
 
 ```
-
-
 
 # Sensitivity Analysis:
 
