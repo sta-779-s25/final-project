@@ -31,6 +31,7 @@ library(visdat)
 library(survey)
 library(labelled)
 library(tipr)
+library(kableExtra)
 
 data("castle")
 ```
@@ -47,15 +48,15 @@ The modern expansion of self-defense laws began with Florida in 2005, when it be
 
 Castle Doctrine often goes hand-in-hand with so-called "Stand Your Ground" laws; however, Castle Doctrine is distinguished from such laws in that it specifically applies to the home (and sometimes other areas such as one’s workplace or car) and allows the use of deadly force, even if disproportionate. In contrast, Stand Your Ground typically applies to anywhere one has a legal right to be but only allows defensive proportional force.
 
-Proponents of Castle Doctrine argue that it is a useful deterrent to crime and contribute to public safety. Critics, on the other hand, contend that these laws may instead unnecessarily escalate levels of violence. The aim of our research is to investigate whether Castle Doctrine laws have a significant impact on states’ murder rates. For the purpose of our research, "murder rate" excludes cases that were ruled justifiable homicides.
+Proponents of Castle Doctrine argue that it is a useful deterrent to crime and contributes to public safety. Critics, on the other hand, contend that these laws may instead unnecessarily escalate levels of violence. The aim of our research is to investigate whether Castle Doctrine laws have a significant impact on states’ murder rates. For the purpose of our research, "murder rate" excludes cases that were ruled justifiable homicides.
 
 # Creating a Directed Acyclic Graph (DAG)
 
-We began by creating a DAG to represent the causal relationships between variables in our dataset. First, we specified our outcome as the state’s murder rate per 100,000 citizens and our exposure as passing a “Castle Doctrine” law between 2001 and 2010. We then identified several covariates we thought would play important causal roles in relation to murder rate and whether a state would pass a Castle Doctrine law.
+We began by creating a DAG to represent the causal relationships between variables in our dataset. First, we specified our outcome as the state’s murder rate per 100,000 citizens and our exposure as passing a “Castle Doctrine” law between 2001 and 2010, as designated by Cheng and Hoekstra. We then identified several covariates we thought would play important causal roles in relation to murder rate and whether a state would pass a Castle Doctrine law.
 
-For example, we believed that the murder rate as well as the decision to pass a Castle Doctrine Law could depend on the state’s demographics as well as the prevalence of certain crimes in the year prior, such as robbery with a firearm, assault, and even murder itself, as these crimes would likely create an atmosphere of fear that would sway voters and politicians to pass such a law. In our analysis, we lagged all the crime variables (homicide, assault, motor vehicle theft, etc.) by one year, so we were able to accurately capture their causal effect on the next year.
+For example, we believed that the murder rate as well as the decision to pass a Castle Doctrine Law could depend on the state’s demographics as well as the prevalence of certain crimes in the year prior, such as robbery with a firearm, assault, and even murder itself, as these crimes would likely create an atmosphere of fear that would sway voters and politicians to pass such a law. In our analysis, we lagged all the crime variables (assault, burglary, motor vehicle theft, murder, robbery, and robbery with a firearm) by one year, so we were able to accurately capture their causal effect on the next year.
 
-Our full DAG illustrating the causal relationships we believe are present is shown in Figure 1.
+Our full DAG illustrating the causal relationships we believe are in effect is presented **Figure 1**.
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
 castle$treat_year <- ifelse(castle$post == 1, castle$year, 0)
@@ -165,9 +166,9 @@ ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
 
 ## Adjustment Sets
 
-After mapping out our DAG, the next step in our Causal Analysis was identifying potential confounders that we would need to adjust for in our model. There are two possible adjustment sets for our DAG as shown in the plot below. The minimal adjustment set includes homicide, assault, burglary, robbery, robbery involving a firearm, and motor vehicle theft, while the second is made up of robbery, poverty, robbery involving a firearm, and all four male age-race variables (% of Black males age 15-24, % of white males age 15-24, % of black males age 25-44, % of white males age 25-44).
+After mapping out our DAG, the next step in our Causal Analysis was identifying potential confounders that we would need to adjust for in our model. There are two possible adjustment sets for our DAG as shown in **Figure 2**. The minimal adjustment set includes homicide, assault, burglary, robbery, robbery involving a firearm, and motor vehicle theft, while the second is made up of robbery, poverty, robbery involving a firearm, and all four male age-race variables (% of Black males age 15-24, % of white males age 15-24, % of black males age 25-44, % of white males age 25-44).
 
-```{r, fig.height=9, fig.width=10, fig.cap = "DAG w/ Adjustments"}
+```{r, fig.height=9, fig.width=10, fig.cap = "DAG w. Adjustment Sets"}
 ggdag_adjustment_set(castle_dag, text_col = "black",
                      use_labels = "label",
                      text = FALSE) +
@@ -176,7 +177,7 @@ ggdag_adjustment_set(castle_dag, text_col = "black",
 
 ## Missing Data
 
-In our analysis of missing data, we found that robbery involving a firearm has about 1.09% missing data (6 observations), and is only missing for one state, Washington. No other variables include missing data. Due to the low level of missingness and the fact that Washington did not implement Castle Doctrine (which is far and away the larger class), we proceed with a complete case analysis and drop the state of Washington from consideration.
+In our analysis of missing data, we found that robbery involving a firearm has about 1.09% missing data (6 observations), and is only missing for one state, Washington. No other variables include missing data. Due to the low level of missingness and the fact that Washington did not implement Castle Doctrine, which is the much larger subpopulation, we proceeded with a complete case analysis and excluded the state of Washington from consideration.
 
 ```{r, fig.cap = "Missing Data Visualization"}
 vis_dat(castle_for_tab)
@@ -202,18 +203,24 @@ tbl_summary(
 ) |>
   add_overall(last = TRUE) |> 
   modify_caption("**Table 1: Sample Characteristics by Castle Doctrine**") |> 
-  modify_footnote(everything() ~ "Rates per 100,000 persons")
+  modify_footnote(everything() ~ "Rates per 100,000 persons") |> 
+  as_kable_extra(format = "latex") |>
+  kable_styling(
+    latex_options = c("scale_down", "hold_position"),
+    full_width = FALSE,
+    position = "center"
+  )
 ```
 
 # Propensity Weighting
 
-We will use propensity scores in our analysis, which help us simulate what the relationship between exposure (implementing Castle Doctrine) and outcome (murder rates) would have looked like if our data was from a randomized trial instead of observational. Since we are interested in the effect on the treated states, we will use the inverse probability weight for the Average Treatment Effect Among the Treated (ATT) to estimate the ATT using propensity score weighting. Here, the propensity score for each observation is the probability of the state implementing Castle Doctrine given their particular covariate values. To simplify our model, we used the minimum adjustment set to identify confounders to include. We use logistic regression to calculate these probabilities with the model shown below:
+We used propensity score weighting in our analysis, which allowed us simulate what the relationship between exposure (implementing Castle Doctrine) and outcome (murder rates) would have looked like if our data had come from a randomized trial instead of being observational. Since we targeted the effect of the policy on the treated states, we employed the inverse probability weight for the Average Treatment Effect Among the Treated (ATT) to estimate the effect. Here, the propensity score for each observation is the probability of the state implementing Castle Doctrine given their particular covariate values. To simplify our model and minimize potential measurement error, we used the minimal adjustment set to identify confounders. We then fit a logistic regression to calculate these probabilities with the model shown below:
 
 $log\_odds_i = S_{1:3}(Homicide_i) + S_{1:2}(Burglary_i) + Assault_i + MotorTheft_i + Robbery_i + ArmedRobbery_i$
 
 ## Unweighted
 
-Before ATT weighting, we see we have a very large class imbalance and the majority of the propensity scores are between 0 and .2.
+Before reweighing, we observed a large imbalance between treated and untreated subpopulations. In particular, the distribution of propensity scores for states that had not passed Castle Doctrine laws was highly right skewed, with a majority of the scores falling between 0 and .2.
 
 ```{r}
 propensity_model <- glm(post ~ splines::ns(homicide, 3) +
