@@ -350,7 +350,7 @@ To capture the time-varying effect of the implementation of Castle Doctrine, we 
 
 $Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$ \
 
-We simulated counterfactual data for each of the four years before and after the enactment of Castle Doctrine laws. For each year, we calculated the difference in murder rates between the post- and pre-enactment periods for both Castle Doctrine states and non-Castle Doctrine states. We then conducted a pseudo–difference-in-differences analysis to estimate the treatment effect of Castle Doctrine across time.
+We simulated counterfactual data for each of the four years before and after the enactment of Castle Doctrine laws. For each year, we computed the difference in murder rates between the post- and pre-enactment periods for both Castle Doctrine and non–Castle Doctrine states. Using these differences, we conducted a pseudo–difference-in-differences analysis to estimate the treatment effect of Castle Doctrine over time. Based on our model, we estimated the average treatment effect among the treated (ATT) for four time intervals surrounding the law's passage. The point estimates of these effects are presented in **Table 3**. Across all periods, we observed a negative effect on the murder rate; however, to assess the reliability of these estimates, we conducted an uncertainty analysis
 
 ```{r}
 standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
@@ -407,7 +407,8 @@ colnames(estimate_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Point 
 
 
 estimate_df |> 
-  kbl(format = "latex", booktabs = TRUE, escape = F) |> 
+  kbl(format = "latex", booktabs = TRUE, escape = F,
+      caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
@@ -415,9 +416,9 @@ estimate_df |>
   )
 ```
 
-# Measures of Uncertainty
+## Measures of Uncertainty
 
-In order to understand the uncertainty in our estimates, we used bootstrap methodology, resampling our data 1000 times to create a synthetic distribution of estimates. Taking the upper and lower $0.05/2$-level quantiles, we were able to get an estimate for lower and upper bounds on each of our estimates. All four confidence intervals include zero, so none of our effects are statistically significant at the 95% level.
+To assess the uncertainty of our estimates, we employed a bootstrap approach, resampling the data 1,000 times to generate a distribution of estimated treatment effects. From this empirical distribution, we calculated the $2.5$ and $97.5$ percentiles to construct 95\% confidence intervals for each point estimate. All four confidence intervals contained zero, indicating that none of the estimated effects are statistically significant at the 95\% level.
 
 ```{r}
 set.seed(779)
