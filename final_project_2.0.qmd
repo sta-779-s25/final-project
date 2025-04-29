@@ -14,6 +14,9 @@ abstract:
 ---
 
 ```{r}
+
+# Libraries
+
 library(causaldata)
 library(dagitty)
 library(ggdag)
@@ -59,13 +62,17 @@ For example, we believed that the murder rate as well as the decision to pass a 
 Our full DAG illustrating the causal relationships we believe are in effect is presented **Figure 1**.
 
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+# Data transformations
+
 castle$treat_year <- ifelse(castle$post == 1, castle$year, 0)
 
 lower <- 1
 upper <- 11
 i <- 1
 while(i < 51){
-  treat_year_1 <- min(castle$treat_year[lower:upper][castle$treat_year[lower:upper] != 0])
+  treat_year_1 <- 
+min(castle$treat_year[lower:upper][castle$treat_year[lower:upper] !=0])
   castle$treat_year[lower:upper] <- rep(treat_year_1, 11)
   lower <- upper + 1
   upper <- lower + 10
@@ -75,21 +82,30 @@ while(i < 51){
 castle <- castle |>
   mutate(years_after_treat = year - treat_year)
 
-castle$years_after_treat <- ifelse(castle$years_after_treat == -Inf, NA, castle$years_after_treat)
+castle$years_after_treat <-
+  ifelse(castle$years_after_treat == -Inf, NA, castle$years_after_treat)
 
 
 castle <- castle |>
   group_by(sid) |>
-  mutate_at(c("assault", "burglary", "homicide", "larceny", "motor", "l_larceny", "l_motor", 
-              "l_police", "l_income", "l_exp_subsidy", "l_exp_pubwelfare"), lag) |>
+  mutate_at(c("assault", "burglary",
+              "homicide", "larceny",
+              "motor", "l_larceny",
+              "l_motor", "l_police",
+              "l_income", "l_exp_subsidy",
+              "l_exp_pubwelfare"), lag) |>
   mutate(murder_lag = lag(murder)) |> 
   ungroup()
 
 
-castle$sid <- ifelse(as.numeric(castle$sid) > 8, castle$sid - 1, castle$sid)
+castle$sid <- ifelse(as.numeric(castle$sid) > 8,
+                     castle$sid - 1, castle$sid)
 
-state_id_list <- read_excel("state_id_list_fixed.xlsx", col_names = FALSE)
+state_id_list <- read_excel("state_id_list_fixed.xlsx",
+                            col_names = FALSE)
+
 colnames(state_id_list) <- c("state", "pop", "sid")
+
 state_id_ranks <- state_id_list |>
   select(state, sid)
 castle_dat <- full_join(castle, state_id_list, by = "sid")
@@ -111,15 +127,23 @@ castle_dat <- castle_dat |>
              starts_with("lag"))) |>
   drop_na(robbery_gun_r) |>
   filter(sid != 47)
+
 ```
 
 ```{r}
-# young_male_race is taking place of blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44
+
+#DAG structure
+
+# young_male_race is taking place of:
+# blackm_15_24 + whitem_15_24 + blackm_25_44 + whitem_25_44
 
 castle_dag <- dagify(
-  murder ~ young_male_race + poverty + popwt + robbery_gun_r + l_police + post + years_after_treat + robbery,
+  murder ~ young_male_race + poverty + popwt +
+          robbery_gun_r + l_police + post +
+          years_after_treat + robbery,
   
-  post ~ homicide + robbery_gun_r + assault + burglary + motor + murder_lag + robbery,
+  post ~ homicide + robbery_gun_r + assault +
+          burglary + motor + murder_lag + robbery,
   
   burglary ~ poverty + young_male_race,
   homicide ~ poverty + young_male_race,
@@ -127,7 +151,8 @@ castle_dag <- dagify(
   robbery ~ poverty + young_male_race,
   assault ~ poverty + young_male_race,
   
-  poverty ~ unemployrt + l_exp_subsidy + l_exp_pubwelfare + l_income,
+  poverty ~ unemployrt + l_exp_subsidy +
+            l_exp_pubwelfare + l_income,
   
   l_police ~ l_income,
   
@@ -154,12 +179,18 @@ castle_dag <- dagify(
     motor = "Auto Theft",
     l_income = "Income")
 )
+
 ```
 
 ```{r, fig.height=10, fig.width=10, fig.cap = "DAG"}
-ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
+
+#DAG
+
+ggdag(castle_dag, layout = "nicely",
+      use_labels = "label", text = FALSE) +
   labs(caption = "DAG") +
   theme_dag()
+
 ```
 
 # Adjustments and Missing Data
@@ -169,10 +200,14 @@ ggdag(castle_dag, layout = "nicely", use_labels = "label", text = FALSE) +
 After mapping out our DAG, the next step in our Causal Analysis was identifying potential confounders that we would need to adjust for in our model. There are two possible adjustment sets for our DAG as shown in **Figure 2**. The minimal adjustment set includes homicide, assault, burglary, robbery, robbery involving a firearm, and motor vehicle theft, while the second is made up of robbery, poverty, robbery involving a firearm, and all four male age-race variables (% of Black males age 15-24, % of white males age 15-24, % of black males age 25-44, % of white males age 25-44).
 
 ```{r, fig.height=9, fig.width=10, fig.cap = "DAG w. Adjustment Sets"}
+
+# Adjustment Sets
+
 ggdag_adjustment_set(castle_dag, text_col = "black",
                      use_labels = "label",
                      text = FALSE) +
   theme_dag()
+
 ```
 
 ## Missing Data
@@ -180,10 +215,12 @@ ggdag_adjustment_set(castle_dag, text_col = "black",
 In our analysis of missing data, we found that robbery involving a firearm has about 1.09% missing data (6 observations), and is only missing for one state, Washington. No other variables include missing data. Due to the low level of missingness and the fact that Washington did not implement Castle Doctrine, which is the much larger subpopulation, we proceeded with a complete case analysis and excluded the state of Washington from consideration.
 
 ```{r, fig.cap = "Missing Data Visualization"}
+
+# Missing Data Viz
+
 vis_dat(castle_for_tab)
+
 ```
-
-
 
 # Propensity Weighting
 
@@ -194,9 +231,15 @@ $log\_odds_i = S_{1:3}(Homicide_i) + S_{1:2}(Burglary_i) + Assault_i + MotorThef
 ## Unweighted Data
 
 ```{r}
+
+# Unweighted Table
+
 castle_select <- castle_dat |>
-  select(c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r)) |> 
-  mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine")) |> 
+  select(c(post, assault, burglary, homicide,
+           motor, robbery, robbery_gun_r)) |> 
+  mutate(post = ifelse(post == 0,
+                       "Pre-Doctrine",
+                       "Post-Doctrine")) |> 
   set_variable_labels(
     post = "Passage of Castle Doctrine",
     assault = "Assault",
@@ -213,18 +256,23 @@ tbl_summary(
 ) |>
   add_overall(last = TRUE) |> 
   modify_caption("**Sample Characteristics by Castle Doctrine**") |> 
-  modify_footnote(everything() ~ "Median (Q1, Q3); Rates per 100,000 persons") |>
+  modify_footnote(everything() ~
+                    "Median (Q1, Q3); Rates per 100,000 persons") |>
   as_kable_extra(format = "latex") |>
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
     position = "center"
   )
+
 ```
 
 Before weighting our subpopulations with IPW, we observe substantial imbalances between the pre and post-Doctrine subpopulations. From **Table 1**, we see the Pre-Doctrine group had 411 observations, with lower median crime rates across all covariates in the adjustment set. This imbalance is also reflected in the distributions of propensity scores, displayed in Figure. The distribution of propensity scores for states that had not passed Castle Doctrine laws is highly right skewed, with a majority of the scores falling between 0.0 and 0.2, while the distribution for post-Castle Doctrine states is spread relatively uniformly from 0.0 to 0.7.
 
 ```{r}
+
+# Propensity model
+
 propensity_model <- glm(post ~ splines::ns(homicide, 3) +
                           splines::ns(burglary, 2) +
                           assault + motor + robbery +
@@ -235,25 +283,43 @@ propensity_model <- glm(post ~ splines::ns(homicide, 3) +
 castle_dat <- propensity_model |>
   augment(type.predict = "response", data = castle_dat) |>
   mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+
 ```
 
 ```{r, fig.cap = "Mirrored Histogram, Unweighted"}
-ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post))) +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "Unweighted") +
+
+# Mirrored histogram, unweighted
+
+ggplot(castle_dat, aes(x = .fitted,
+                       group = post,
+                       fill = post)) +
+  geom_mirror_histogram(bins = 30,
+                        alpha = 1,
+                        aes(fill = factor(post))) +
+  labs(x = "Propensity Score",
+       fill = "Passed Castle Doctrine",
+       caption = "Unweighted") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  scale_fill_manual(labels = c("No", "Yes"),
+                    values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
+
 ```
 
 ## ATT Weighting
 
 ```{r, warning = FALSE}
 
+# Weighted table
+
 castle_select2 <- castle_dat |>
-  select(c(post, assault, burglary, homicide, motor, robbery, robbery_gun_r, w_att)) |> 
-  mutate(post = ifelse(post == 0, "Pre-Doctrine", "Post-Doctrine")) |> 
+  select(c(post, assault, burglary,
+           homicide, motor, robbery,
+           robbery_gun_r, w_att)) |> 
+  mutate(post = ifelse(post == 0,
+                       "Pre-Doctrine",
+                       "Post-Doctrine")) |> 
     set_variable_labels(
     post = "Passage of Castle Doctrine",
     assault = "Assault",
@@ -277,11 +343,14 @@ hdr <- paste0(
 
 tbl_svysummary(svy_des,
                by = post,
-               include = c(assault, burglary, homicide, motor, robbery, robbery_gun_r))|> 
+               include = c(assault, burglary,
+                           homicide, motor,
+                           robbery, robbery_gun_r))|> 
     add_overall(last = TRUE) |> 
   add_ess_header(header = hdr) |> 
-  modify_caption("**Sample Characteristics by Re-Weighted Castle Doctrine**") |> 
-  modify_footnote(everything() ~ "Median (Q1, Q3); Rates per 100,000 persons")|>
+modify_caption("**Sample Characteristics by Re-Weighted Castle Doctrine**") |> 
+  modify_footnote(everything() ~
+                    "Median (Q1, Q3); Rates per 100,000 persons")|>
   as_kable_extra(format = "latex") |>
   kable_styling(
   latex_options = c("scale_down", "hold_position"),
@@ -292,28 +361,54 @@ tbl_svysummary(svy_des,
 ```
 
 ```{r, fig.cap = "Mirrored Histogram, Unweighted and Weighted"}
-ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
-  labs(x = "Propensity Score", y = "Count") +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+
+# Mirrored Hist Weighted
+
+ggplot(castle_dat, aes(x = .fitted,
+                       group = post,
+                       fill = post)) +
+  geom_mirror_histogram(bins = 30,
+                        alpha = .6,
+                        fill = "grey") +
+  labs(x = "Propensity Score",
+       y = "Count") +
+  geom_mirror_histogram(bins = 30,
+                        alpha = 1,
+                        aes(fill = factor(post),
+                            weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
+  labs(x = "Propensity Score",
+       y = "Count",
+       fill = "Passed Castle Doctrine") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  scale_fill_manual(labels = c("No", "Yes"),
+                    values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
 ```
 
 ```{r, fig.cap = "Mirrored Histogram, ATT Only"}
-ggplot(castle_dat, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
+
+#Mirrored Histogram, ATT Only
+
+ggplot(castle_dat, aes(x = .fitted,
+                       group = post,
+                       fill = post)) +
+  geom_mirror_histogram(bins = 30,
+                        alpha = 1,
+                        aes(fill = factor(post),
+                            weight = w_att)) +
   theme(legend.position = "bottom") +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine") +
+  labs(x = "Propensity Score",
+       y = "Count",
+       fill = "Passed Castle Doctrine") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  scale_fill_manual(labels = c("No", "Yes"),
+                    values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
+
 ```
 
 To account for the differences across the two subpopulations, we fit the previously-specified propensity score model, predicting a state's probability of passing a Castle Doctrine law based on the covariates in our adjustment set. After reweighting our data, we observe in **Table 2** that the median value of the covariates are much more matched between between Castle Doctrine states and non-Castle Doctrine states.
@@ -323,23 +418,44 @@ We display the distributions of the propensity scores for the subpopulations in 
 We also used a Love Plot (**Figure 7**) to visualize the effect of ATT weighting on the Standardized Mean Difference for each confounding covariate. Before weighting, we observe the SMD for each covariate except for Robbery was relatively large, reflecting the unbalance between Castle Doctrine states and non-Castle Doctrine states across these variables. After re-weighting, we see that the SMDs across the covariates are below the 0.1 threshold, suggesting that the weighting method has balanced the two pseudo-populations across each covariate very effectively. These results align with the conclusions we were able to draw from comparing the unweighted and re-weighted tables.
 
 ```{r, fig.cap = "Love Plot"}
-dat_for_love <- castle_dat %>%
-  select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
 
-colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
+#Organizing Love Plot
+
+dat_for_love <- castle_dat |> 
+  select(assault, burglary,
+         homicide, motor,
+         robbery, robbery_gun_r,
+         post, w_att)
+
+colnames(dat_for_love) <- c("Assault", "Burglary",
+                            "Homicide", "Motor Vehicle Theft",
+                            "Robbery", "Armed Robbery \n with Gun Rate",
+                            "post", "w_att")
 
 weighted_for_love <- tidy_smd(
   dat_for_love,
-  .vars = c(Assault, Burglary, Homicide, `Motor Vehicle Theft`, Robbery, `Armed Robbery \n with Gun Rate`),
+  .vars = c(Assault, Burglary,
+            Homicide, `Motor Vehicle Theft`,
+            Robbery, `Armed Robbery \n with Gun Rate`),
   .group = post,
   .wts = c(w_att)
 )
 
-ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
+#Love Plot
+
+ggplot(data = weighted_for_love,
+       aes(x = abs(smd),
+           y = variable,
+           group = method,
+           color = method)) +
   geom_love() +
-  scale_color_manual(values = c("coral", "turquoise"), labels = c("Observed", "ATT Weighted")) + 
-  labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
+  scale_color_manual(values = c("coral", "turquoise"),
+                     labels = c("Observed", "ATT Weighted")) + 
+  labs(color = "Method",
+       x = "Absolute Value of SMD",
+       y = "Variable") +
   theme_minimal()
+
 ```
 
 Finally, we compared the empirical cumulative distribution functions (eCDFs) of our confounders. Since all confounders in the adjustment set were continuous, we constructed eCDF plots for each one. Although we were not able to achieve perfect correspondence between the two subpopulations through weighting alone, incorporating second and third degree splines (as reflected in our propensity score model) on Homicide and Burglary helped to bring the eCDFs for those covariates closer together (see Appendix). Overall, our checks suggested that the necessary assumptions for causal inference appeared to be reasonably met, so we proceeded with effect estimation.
@@ -353,7 +469,12 @@ $Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$ \
 We simulated counterfactual data for each of the four years before and after the enactment of Castle Doctrine laws. For each year, we computed the difference in murder rates between the post- and pre-enactment periods for both Castle Doctrine and non–Castle Doctrine states. Using these differences, we conducted a pseudo–difference-in-differences analysis to estimate the treatment effect of Castle Doctrine over time. Based on our model, we estimated the average treatment effect among the treated (ATT) for four time intervals surrounding the law's passage. Four-years was the largest symmetric time-span around Castle Doctrine passage available for comparison in our data. The point estimates of these effects are presented in **Table 3**. Across all periods, we observed a negative effect on the murder rate; however, to assess the reliability of these estimates, we conducted an uncertainty analysis
 
 ```{r}
-standardized_model <- lm(murder ~ post*years_after_treat, data = castle_dat, weights = w_att)
+
+#G-Computation
+
+standardized_model <- lm(murder ~ post*years_after_treat,
+                         data = castle_dat,
+                         weights = w_att)
 
 years_pre_post <- c(1:4)
 
@@ -395,25 +516,31 @@ for (j in years_pre_post){
     
     estimate_df$years_pre_post[j] <- j
     
-    estimate_df$ATT_est[j] <- (mean(new_data_plus_j_yes$murder_est) -
-                                 mean(new_data_minus_j_yes$murder_est)) -
-                              (mean(new_data_plus_j_no$murder_est) -
-                                 mean(new_data_minus_j_no$murder_est))
+    estimate_df$ATT_est[j] <-
+      (mean(new_data_plus_j_yes$murder_est) -
+       mean(new_data_minus_j_yes$murder_est)) -
+    (mean(new_data_plus_j_no$murder_est) -
+       mean(new_data_minus_j_no$murder_est))
 }
 
 estimate_df$ATT_est <- round(estimate_df$ATT_est, 3)
 
-colnames(estimate_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Point Est.")
+colnames(estimate_df) <-
+  c("Years Before/\\\\After Castle Doctrine",
+                           "ATT Point Est.")
 
 
 estimate_df |> 
-  kbl(format = "latex", booktabs = TRUE, escape = F,
-      caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
+  kbl(format = "latex",
+      booktabs = TRUE,
+      escape = F,
+caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
     position = "center"
   )
+
 ```
 
 ## Measures of Uncertainty
@@ -421,6 +548,9 @@ estimate_df |>
 To assess the uncertainty of our estimates, we employed a bootstrap approach, resampling the data 1,000 times to generate a distribution of estimated treatment effects. From this empirical distribution, we calculated the $2.5$ and $97.5$ percentiles to construct 95\% confidence intervals for each point estimate. All four confidence intervals contained zero, indicating that none of the estimated effects are statistically significant at the 95\% level.
 
 ```{r}
+
+#Bootstrap CIs
+
 set.seed(779)
 
 n_bootstrap <- 1000
@@ -470,9 +600,11 @@ for (j in years_pre_post){
       augment(newdata = boot_dat_minus_j_no) |>
       rename(murder_est = .fitted)
     
-    bootstrap_est[b] <- (mean(new_data_plus_j_yes$murder_est) -
-                           mean(new_data_minus_j_yes$murder_est)) -  
-      (mean(new_data_plus_j_no$murder_est) - mean(new_data_minus_j_no$murder_est))
+    bootstrap_est[b] <-
+      (mean(new_data_plus_j_yes$murder_est) -
+        mean(new_data_minus_j_yes$murder_est)) -  
+      (mean(new_data_plus_j_no$murder_est)
+       - mean(new_data_minus_j_no$murder_est))
     
   }
   
@@ -485,17 +617,22 @@ for (j in years_pre_post){
   bootstrap_df$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
 }
 
-colnames(bootstrap_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95\\% CI Lower Bound", "Upper Bound")
+colnames(bootstrap_df) <- c("Years Before/\\\\After Castle Doctrine",
+                            "ATT Estimate",
+                            "ATT Standard Dev.",
+                            "95\\% CI Lower Bound",
+                            "Upper Bound")
 
 bootstrap_df |> 
-  kbl(format = "latex", booktabs = TRUE, escape = FALSE,
-      caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
+  kbl(format = "latex",
+      booktabs = TRUE,
+      escape = FALSE,
+caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
     position = "center"
   )
-
 
 ```
 
@@ -510,14 +647,29 @@ Using the alternative adjustment set--which includes robbery, poverty, robbery i
 The discrepancy in point estimates suggests that there may be measurement error in one or more covariates in the dataset or that the DAG does not fully capture the true underlying causal structure at work. To investigate the latter, we made some modifications to the DAG, such as connecting the police presence variable to crime variables; however, we found these changes did not significantly affect our results.
 
 ```{r}
-propensity_model_alt <- glm(post ~ splines::ns(poverty, 5) + robbery + splines::ns(robbery_gun_r, 4) + whitem_15_24 + blackm_15_24 + whitem_25_44 + blackm_25_44, data = castle_dat, family = "binomial")
+
+#Alt. Adjustment Set Propensity
+
+propensity_model_alt <- glm(post ~ splines::ns(poverty, 5) +
+                              robbery + splines::ns(robbery_gun_r, 4) +
+                              whitem_15_24 + blackm_15_24 +
+                              whitem_25_44 + blackm_25_44,
+                            data = castle_dat,
+                            family = "binomial")
 
 castle_dat_alt <- propensity_model_alt |>
-  augment(type.predict = "response", data = castle_dat) |>
-  mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+  augment(type.predict = "response",
+          data = castle_dat) |>
+  mutate(w_att = wt_att(.fitted,
+                        post,
+                        exposure_type = "binary"))
+
 ```
 
 ```{r}
+
+# Alt Adjustment Set G-Comp
+
 years_pre_post <- c(1:4)
 
 estimate_df <- data.frame("years_pre_post" = years_pre_post,
@@ -558,27 +710,33 @@ for (j in years_pre_post){
     
     estimate_df$years_pre_post[j] <- j
     
-    estimate_df$ATT_est[j] <- (mean(new_data_plus_j_yes$murder_est) -
-                                 mean(new_data_minus_j_yes$murder_est)) -
-                              (mean(new_data_plus_j_no$murder_est) -
-                                 mean(new_data_minus_j_no$murder_est))
+    estimate_df$ATT_est[j] <-
+      (mean(new_data_plus_j_yes$murder_est) -
+         mean(new_data_minus_j_yes$murder_est)) -
+      (mean(new_data_plus_j_no$murder_est) -
+         mean(new_data_minus_j_no$murder_est))
 }
 
 estimate_df$ATT_est <- round(estimate_df$ATT_est, 3)
 
-colnames(estimate_df) <- c("Years Before/\\\\After Castle Doctrine", "ATT Point Est.")
+colnames(estimate_df) <- c("Years Before/\\\\After Castle Doctrine",
+                           "ATT Point Est.")
 
 estimate_df |> 
   kbl(format = "latex", booktabs = TRUE, escape = F,
-      caption = "Alt. Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
+caption = "Alt. Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
     position = "center"
   )
+
 ```
 
 ```{r}
+
+#Bootstrap Alt.
+
 set.seed(779)
 
 n_bootstrap <- 1000
@@ -630,20 +788,26 @@ for (j in years_pre_post){
       augment(newdata = boot_dat_minus_j_no) |>
       rename(murder_est = .fitted)
     
-    bootstrap_est[b] <- (mean(new_data_plus_j_yes$murder_est) -
-                           mean(new_data_minus_j_yes$murder_est)) -  
-      (mean(new_data_plus_j_no$murder_est) - mean(new_data_minus_j_no$murder_est))
+    bootstrap_est[b] <-
+      (mean(new_data_plus_j_yes$murder_est) -
+        mean(new_data_minus_j_yes$murder_est)) -  
+      (mean(new_data_plus_j_no$murder_est) -
+         mean(new_data_minus_j_no$murder_est))
     
   }
   
   ## Rounded
-  bootstrap_df_names_clean$mean_ATT[j] <- round(mean(bootstrap_est),3)
+  bootstrap_df_names_clean$mean_ATT[j] <-
+    round(mean(bootstrap_est),3)
   
-  bootstrap_df_names_clean$sd_ATT[j] <- round(sd(bootstrap_est),3)
+  bootstrap_df_names_clean$sd_ATT[j] <-
+    round(sd(bootstrap_est),3)
   
-  bootstrap_df_names_clean$ci.l[j] <- round(quantile(bootstrap_est, 0.025),3)
+  bootstrap_df_names_clean$ci.l[j] <-
+    round(quantile(bootstrap_est, 0.025),3)
   
-  bootstrap_df_names_clean$ci.u[j] <- round(quantile(bootstrap_est, 0.975),3)
+  bootstrap_df_names_clean$ci.u[j] <-
+    round(quantile(bootstrap_est, 0.975),3)
   
   ## Unrounded
   bootstrap_df$mean_ATT[j] <- mean(bootstrap_est)
@@ -655,11 +819,16 @@ for (j in years_pre_post){
   bootstrap_df$ci.u[j] <- quantile(bootstrap_est, 0.975)
 }
 
-colnames(bootstrap_df_names_clean) <- c("Years Before/\\\\After Castle Doctrine", "ATT Estimate", "ATT Standard Dev.", "95\\% CI Lower Bound", "Upper Bound")
+colnames(bootstrap_df_names_clean) <-
+  c("Years Before/\\\\After Castle Doctrine",
+    "ATT Estimate", "ATT Standard Dev.",
+    "95\\% CI Lower Bound", "Upper Bound")
 
 bootstrap_df_names_clean |> 
-  kbl(format = "latex", booktabs = TRUE, escape = FALSE,
-      caption = "Alt. Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
+  kbl(format = "latex",
+      booktabs = TRUE,
+      escape = FALSE,
+caption = "Alt. Estimated ATT by Year Relative to Castle Doctrine Ratification") |> 
   kable_styling(
     latex_options = c("scale_down", "hold_position"),
     full_width = FALSE,
@@ -677,7 +846,10 @@ For example, if a one standard deviation change in the unmeasured confounder red
 Finally, we assessed the potential impact of an unmeasured confounder on the causal relationship using a tipping point analysis. Because our effect at 1 through 4 years from implementation was not significant at a 95% significance level, our tipping point focused on the confounder needed to make the effect significant in either a positive or negative direction. For conciseness, we focused on the effect at 1 year before and after implementation. The graphs below illustrate how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rates) would bias the estimated effect at one year before and after exposure. Based on the graph, we can identify tipping points, where the adjusted effect crosses the null.
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative Effect -1"}
-#Unmeasured confounder to make significant negative effect - 1 year pre/post
+
+#Unmeasured confounder to make significant
+#negative effect - 1 year pre/post
+
 ci.u <- bootstrap_df[1,"ci.u"]
 
 adjust_df <- adjust_coef(
@@ -719,7 +891,10 @@ ggplot(
 Looking at the negative plot (shown above), we observed that, for example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 2 percent and was associated with a probability of 0.45 of not passing a Castle Doctrine law (i.e. -0.45 on the x-axis), then the upper bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive Effect -1"}
-#Unmeasured confounder to make significant positive effect - 1 year pre/post
+
+#Unmeasured confounder to make
+#significant positive effect - 1 year pre/post
+
 ci.l <- bootstrap_df[1,"ci.l"]
 
 adjust_df <- adjust_coef(
@@ -754,6 +929,7 @@ ggplot(
     y = "Adjusted Effect",
     title = "Effect of Unmeasured Confounder on Treatment Effect"
   )
+
 ```
 
 Looking at the positive plot (shown above), we observe that, if a one standard deviation change in the unmeasured confounder increased murder rate by 3 percent and was associated with a probability of 0.67 of not passing a Castle Doctrine law (i.e. -0.67 on the x-axis), then the lower bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely positive, representing a significant positive effect on the murder rate. Such a confounder is somewhat less likely than the previous; however, again, given the limitations in our data, more investigation would be needed to completely rule out such a confounder.
@@ -772,11 +948,15 @@ Huntington-Klein, N., & Barrett, M. (2024, October 24). Castle Dataset. R PACKAG
 # Appendix: {.appendix}
 
 ```{r}
+
+#Missing data table
+
 miss_tab <- miss_var_summary(castle_for_tab)
 colnames(miss_tab) <- c("Variable", "Missing (n)", "Percent Missing")
 
 miss_tab |>
   gt()
+
 ```
 
 ## Model before the splines: {.appendix}
@@ -784,53 +964,95 @@ miss_tab |>
 ### Mirrored Histogram: {.appendix}
 
 ```{r, fig.caption = "Mirrored Histograms of Propensity Scores No Splines"}
-propensity_model_test <- glm(post ~ homicide + burglary + assault + motor + robbery + robbery_gun_r , data = castle_dat, family = "binomial")
+
+#Before splines
+
+propensity_model_test <- glm(post ~ homicide + burglary +
+                assault + motor + robbery + robbery_gun_r,
+                data = castle_dat, family = "binomial")
 
 castle_dat_test <- propensity_model_test |>
-  augment(type.predict = "response", data = castle_dat) |>
-  mutate(w_att = wt_att(.fitted, post, exposure_type = "binary"))
+  augment(type.predict = "response",
+          data = castle_dat) |>
+  mutate(w_att = wt_att(.fitted,
+                        post,
+                        exposure_type = "binary"))
 
-ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
+ggplot(castle_dat_test, aes(x = .fitted,
+                            group = post,
+                            fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "ATT", y = "Count") +
+  geom_mirror_histogram(bins = 30, alpha = 1,
+                        aes(fill = factor(post),
+                        weight = w_att)) +
+  labs(x = "Propensity Score",
+        fill = "Passed Castle Doctrine",
+        caption = "ATT", y = "Count") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  scale_fill_manual(labels = c("No", "Yes"),
+                    values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
-ggplot(castle_dat_test, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
-  labs(x = "Propensity Score", fill = "Passed Castle Doctrine", caption = "ATT", y = "Count") +
+ggplot(castle_dat_test, aes(x = .fitted,
+                            group = post,
+                            fill = post)) +
+  geom_mirror_histogram(bins = 30,
+                        alpha = 1,
+                        aes(fill = factor(post),
+                        weight = w_att)) +
+  labs(x = "Propensity Score",
+      fill = "Passed Castle Doctrine",
+      caption = "ATT",
+      y = "Count") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  scale_fill_manual(labels = c("No", "Yes"),
+                    values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
+
 ```
 
 ### Love Plot: {.appendix}
 
 ```{r}
-dat_for_love <- castle_dat_test %>%
-  select(assault, burglary, homicide, motor, robbery, robbery_gun_r, post, w_att)
 
-colnames(dat_for_love) <- c("Assault", "Burglary", "Homicide", "Motor Vehicle Theft", "Robbery", "Armed Robbery \n with Gun Rate", "post", "w_att")
+# Love plot before splines
+
+dat_for_love <- castle_dat_test |> 
+  select(assault, burglary, homicide,
+        motor, robbery, robbery_gun_r,
+        post, w_att)
+
+colnames(dat_for_love) <- c("Assault", "Burglary",
+                            "Homicide", "Motor Vehicle Theft",
+                              "Robbery", "Armed Robbery \n with Gun Rate",
+                              "post", "w_att")
 weighted_for_love <- tidy_smd(
   castle_dat_test,
-  .vars = c(assault, burglary, homicide, motor, robbery, robbery_gun_r),
+  .vars = c(assault, burglary, homicide,
+            motor, robbery, robbery_gun_r),
   .group = post,
   .wts = c(w_att)
 )
 
-ggplot(data = weighted_for_love, aes(x = abs(smd), y = variable, group = method, color = method)) +
+ggplot(data = weighted_for_love,
+              aes(x = abs(smd), y = variable,
+                  group = method, color = method)) +
   geom_love() +
   theme_minimal()
+
 ```
 
 ### eCDFs: {.appendix}
 
 ```{r}
-p1 <- ggplot(castle_dat_test, aes(x = burglary, color = factor(post))) + 
+
+#eCDFs Pre-splines
+
+p1 <- ggplot(castle_dat_test,
+            aes(x = burglary,
+            color = factor(post))) + 
   geom_ecdf() +
   theme(legend.position = "bottom") +
   labs(x = "Burglary", color = "Castle Implemented") +
@@ -882,13 +1104,15 @@ p8 <- ggplot(castle_dat_test, aes(x = homicide, color = factor(post))) +
   ggtitle("ATT") +
   theme_minimal()
 
-p9 <- ggplot(castle_dat_test, aes(x = robbery_gun_r, color = factor(post))) + 
+p9 <- ggplot(castle_dat_test, aes(x = robbery_gun_r,
+              color = factor(post))) + 
   geom_ecdf() +
   theme(legend.position = "bottom") +
   labs(x = "Robbery with Gun", color = "Castle Implemented") +
   theme_minimal()
 
-p10 <- ggplot(castle_dat_test, aes(x = robbery_gun_r, color = factor(post))) + 
+p10 <- ggplot(castle_dat_test, aes(x = robbery_gun_r,
+              color = factor(post))) + 
   geom_ecdf(aes(weights = w_att)) +
   theme(legend.position = "bottom") +
   labs(x = "Robbery with Gun", color = "Castle Implemented") +
@@ -908,9 +1132,13 @@ p12 <- ggplot(castle_dat_test, aes(x = motor, color = factor(post))) +
   ggtitle("ATT") +
   theme_minimal()
 
-(p1+p2)/(p3+p4)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
-(p5+p6)/(p7+p8)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
-(p9+p10)/(p11+p12)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p1+p2)/(p3+p4)+ plot_layout(guides = "collect") &
+      theme(legend.position = "bottom")
+(p5+p6)/(p7+p8)+ plot_layout(guides = "collect") &
+      theme(legend.position = "bottom")
+(p9+p10)/(p11+p12)+ plot_layout(guides = "collect") &
+      theme(legend.position = "bottom")
+
 ```
 
 ## With splines: {.appendix}
@@ -918,6 +1146,9 @@ p12 <- ggplot(castle_dat_test, aes(x = motor, color = factor(post))) +
 ### eCDFS: {.appendix}
 
 ```{r, fig.height=8, fig.width = 8, warning = FALSE, echo = FALSE, fig.caption = "eCDFs"}
+
+#eCDFs with splines
+
 p1 <- ggplot(castle_dat, aes(x = burglary, color = factor(post))) + 
   geom_ecdf() +
   theme(legend.position = "bottom") +
@@ -976,7 +1207,8 @@ p9 <- ggplot(castle_dat, aes(x = robbery_gun_r, color = factor(post))) +
   labs(x = "Robbery with Gun", color = "Castle Implemented") +
   theme_minimal()
 
-p10 <- ggplot(castle_dat, aes(x = robbery_gun_r, color = factor(post))) + 
+p10 <- ggplot(castle_dat, aes(x = robbery_gun_r,
+            color = factor(post))) + 
   geom_ecdf(aes(weights = w_att)) +
   theme(legend.position = "bottom") +
   labs(x = "Robbery with Gun", color = "Castle Implemented") +
@@ -996,46 +1228,80 @@ p12 <- ggplot(castle_dat, aes(x = motor, color = factor(post))) +
   ggtitle("ATT") +
   theme_minimal()
 
-(p1+p2)/(p3+p4)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
-(p5+p6)/(p7+p8)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
-(p9+p10)/(p11+p12)+ plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p1+p2)/(p3+p4)+ plot_layout(guides = "collect") &
+        theme(legend.position = "bottom")
+(p5+p6)/(p7+p8)+ plot_layout(guides = "collect") &
+        theme(legend.position = "bottom")
+(p9+p10)/(p11+p12)+ plot_layout(guides = "collect") &
+        theme(legend.position = "bottom")
 
 ```
 
 ## Alternate Adjustment Set: {.appendix}
 
 ```{r, fig.caption = "Mirrored Histograms of Propensity Scores, Alternate"}
-p1 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
+
+# Alt Adjustment Histograms
+
+p1 <- ggplot(castle_dat_alt,
+            aes(x = .fitted,
+            group = post,
+            fill = post)) +
   geom_mirror_histogram(bins = 30, alpha = .6, fill = "grey") +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores") +
+  geom_mirror_histogram(bins = 30, alpha = 1,
+                    aes(fill = factor(post),
+                    weight = w_att)) +
+  labs(x = "Propensity Score",
+      y = "Count",
+      fill = "Passed Castle Doctrine",
+      caption = "Mirrored Histogram of Propensity Scores") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  scale_fill_manual(labels = c("No", "Yes"),
+                    values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
-p2 <- ggplot(castle_dat_alt, aes(x = .fitted, group = post, fill = post)) +
-  geom_mirror_histogram(bins = 30, alpha = 1, aes(fill = factor(post), weight = w_att)) +
-  labs(x = "Propensity Score", y = "Count", fill = "Passed Castle Doctrine", caption = "Mirrored Histogram of Propensity Scores") +
+p2 <- ggplot(castle_dat_alt, aes(x = .fitted,
+            group = post, fill = post)) +
+  geom_mirror_histogram(bins = 30, alpha = 1,
+                      aes(fill = factor(post),
+                      weight = w_att)) +
+  labs(x = "Propensity Score",
+      y = "Count",
+      fill = "Passed Castle Doctrine",
+      caption = "Mirrored Histogram of Propensity Scores") +
   scale_y_continuous(labels = abs) +
-  scale_fill_manual(labels = c("No", "Yes"), values = c("turquoise", "coral")) +
+  scale_fill_manual(labels = c("No", "Yes"),
+                  values = c("turquoise", "coral")) +
   theme_minimal() +
   theme(legend.position = "bottom")
 
-(p1 + p2) + plot_layout(guides = "collect") & theme(legend.position = "bottom")
+(p1 + p2) + plot_layout(guides = "collect") &
+  theme(legend.position = "bottom")
+
 ```
 
 ```{r, fig.caption = "Alternate Love Plot"}
+
+#Alt Adjustment Love Plot
+
 weighted_for_love_alt <- tidy_smd(
   castle_dat_alt,
-  .vars = c(poverty, robbery, robbery_gun_r, whitem_15_24, blackm_15_24, whitem_25_44, blackm_25_44),
+  .vars = c(poverty, robbery,
+            robbery_gun_r, whitem_15_24,
+            blackm_15_24, whitem_25_44, blackm_25_44),
   .group = post,
   .wts = c(w_att)
 )
 
-ggplot(data = weighted_for_love_alt, aes(x = abs(smd), y = variable, group = method, color = method)) +
+ggplot(data = weighted_for_love_alt,
+      aes(x = abs(smd), y = variable,
+      group = method, color = method)) +
   geom_love() +
-  scale_color_manual(values = c("coral", "turquoise"), labels = c("Oberserved", "ATT Weighted")) + 
-  labs(color = "Method", x = "Absolute Value of SMD", y = "Variable") +
+  scale_color_manual(values = c("coral", "turquoise"),
+                labels = c("Oberserved", "ATT Weighted")) + 
+  labs(color = "Method",
+      x = "Absolute Value of SMD",
+      y = "Variable") +
   theme_minimal()
 ```
