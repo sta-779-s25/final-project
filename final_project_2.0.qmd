@@ -839,11 +839,9 @@ caption = "Alt. Estimated ATT by Year Relative to Castle Doctrine Ratification")
 
 ## Tipping Point Analysis
 
-Finally, we assessed the potential impact of an unmeasured confounder on the relationship between Castle Doctrine and Murder Rate. The graph below illustrates how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rate) would bias the estimated effect. Based on the graphs, we can identify tipping points, where the adjusted effect crosses the null.
+Finally, we assessed the potential impact of an unmeasured confounder on the relationship between Castle Doctrine laws and murder rates using a tipping point analysis. Because the observed effects at 1 through 4 years from implementation were not significant at a 95% significance level, we focused our analysis on the confounding required to to make the estimated effect statistically significant in either a positive or negative direction. For conciseness, we limited the analysis the effect at one year before and after implementation.
 
-For example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 1 percent and was associated with a probability of 0.35 of not passing a Castle Doctrine law (i.e. -0.35 on the x-axis), then the upper bound of adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
-
-Finally, we assessed the potential impact of an unmeasured confounder on the causal relationship using a tipping point analysis. Because our effect at 1 through 4 years from implementation was not significant at a 95% significance level, our tipping point focused on the confounder needed to make the effect significant in either a positive or negative direction. For conciseness, we focused on the effect at 1 year before and after implementation. The graphs below illustrate how varying strength of an unmeasured confounder's associations with the exposure (Castle Doctrine) and the outcome (Murder Rates) would bias the estimated effect at one year before and after exposure. Based on the graph, we can identify tipping points, where the adjusted effect crosses the null.
+The plots below illustrate how varying strength of an unmeasured confounder's associations with both the exposure (Castle Doctrine) and the outcome (Murder Rate) would bias the estimated effect at one year before and after exposure. The graphs allow us to identify tipping points, where the adjusted treatment effect crosses the null.
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Negative Effect -1"}
 
@@ -888,7 +886,7 @@ ggplot(
 
 ```
 
-Looking at the negative plot (shown above), we observed that, for example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 2 percent and was associated with a probability of 0.45 of not passing a Castle Doctrine law (i.e. -0.45 on the x-axis), then the upper bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
+Looking at the negative plot (shown above), we observed that, for example, if a one standard deviation change in the unmeasured confounder reduced murder rate by 2 percent and was associated with a probability of 0.45 of not passing a Castle Doctrine law (-0.45 on the x-axis), then the upper bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely below zero, representing a significant negative effect. Since our dataset is somewhat limited in its scope of variables, it is reasonable to believe that such a confounder might exist.
 
 ```{r, fig.caption = "Unmeasured Confounder Plot for Significant Positive Effect -1"}
 
@@ -932,7 +930,9 @@ ggplot(
 
 ```
 
-Looking at the positive plot (shown above), we observe that, if a one standard deviation change in the unmeasured confounder increased murder rate by 3 percent and was associated with a probability of 0.67 of not passing a Castle Doctrine law (i.e. -0.67 on the x-axis), then the lower bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely positive, representing a significant positive effect on the murder rate. Such a confounder is somewhat less likely than the previous; however, again, given the limitations in our data, more investigation would be needed to completely rule out such a confounder.
+Looking at the positive plot (shown above), we observe that, if a one standard deviation change in the unmeasured confounder increased murder rate by 3 percent and was associated with a probability of 0.55 of not passing a Castle Doctrine law (-0.55 on the x-axis), then the lower bound of the adjusted effect would cross zero, such that the 95% CI for the ATT is entirely positive, representing a significant positive effect on the murder rate. Such a confounder is somewhat less likely than the previous; however, again, given the limitations in our data, more investigation would be needed to completely rule one out.
+
+# Conclusions
 
 # References
 
