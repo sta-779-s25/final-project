@@ -9,8 +9,7 @@ execute:
   echo: false
   message: false
   warning: false
-abstract:
-  This is an abstract
+abstract: This project builds on the analysis from Cheng and Hoekstra (2013) by re-examining whether strengthening Castle Doctrine laws leads to an increase in lethal violence. Castle Doctrine is a type of self-defense law that permits the use of deadly force to protect one’s home. During the 2000s, many U.S. states rapidly adopted and expanded such laws. In our analysis, we investigate the causal impact of implementing these laws on states’ murder rates from 2001 to 2010. We employ a comprehensive causal framework that includes constructing a directed acyclic graph (DAG), inverse probability weighting, G-computation, and sensitivity analyses. Our findings suggest that the adoption of Castle Doctrine laws does not have a statistically significant effect on murder rates relative to pre-enactment levels.
 ---
 
 ```{r}
@@ -933,6 +932,12 @@ ggplot(
 Looking at the positive plot (shown above), we observed that, if a one standard deviation change in the unmeasured confounder increased murder rate by 3 percent and was associated with a probability of 0.55 of not passing a Castle Doctrine law (-0.55 on the x-axis), then the lower bound of the adjusted effect would cross zero, such that the 95% CI for the ATT would be entirely positive, representing a significant positive effect on the murder rate. Such a confounder is somewhat less likely than the previous; however, again, given the limitations in our data, more investigation would be needed to completely rule one out.
 
 # Conclusions
+
+In conclusion, we find the implementation of Castle Doctrine did not have a statistically significant effect on murder rates in U.S. states that enacted such laws between 2001 and 2010. Across four distinct intervals of years before and after enactment, we observed no significant effects on murder rates.
+
+However, several limitations may affect the validity of our findings. First, our DAG reflects our assumptions about the underlying causal structure in question. Consulting subject matter experts to help validate and refine relationships among key variables would be needed to improve further analysis. Similarly, our analysis was constrained by data availability. Important covariates$-$such as state-level gun ownership rates and political leaning$-$were not included but were likely relevant to the causal dynamics at play. Additionally, while all the laws in our dataset fall under the umbrella of "Castle Doctrine," they vary in their specific provisions, which may influence the effect of the laws on violent crime in their particular state. Including each state as a fixed effect in our model, could help address this heterogeneity by accounting for state-specific differences. However, given the limited number of observations per state in our dataset, doing so may reduce statistical power. For future analyses, we recommend compiling a larger and more comprehensive dataset to support more granular modeling.
+
+Finally, our focus on murder rates alone presents another limitation. As of 2017, only about 100 burglary-homicides occurred annually nationwide, suggesting our analysis may be underpowered to detect an effect of Castle Doctrine on murder. Examining other outcomes related to Castle Doctrine$-$such as burglary rates or overall homicide rates$-$could provide a more comprehensive understanding of the laws' impact on violent crime.
 
 # References
 
