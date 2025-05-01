@@ -1,6 +1,7 @@
 ---
 title: "Final Project"
 author: "Hugh Ford and Lauren Chandler-Holtz"
+date: "2025-05-02"
 format:
   pdf:
     fontsize: 12pt
