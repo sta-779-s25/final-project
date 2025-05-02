@@ -944,6 +944,8 @@ Finally, our focus on murder rates alone presents another limitation. As of 2017
 
 Cheng, Cheng, and Mark Hoekstra. 2013. “Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine.” Journal of Human Resources 48 (3): 821–54.
 
+Gillin, J. (2017, October 25). Moore flubs stats on gun deaths during home invasions. Politifact. https://www.politifact.com/factchecks/2017/oct/25/michael-moore/michael-moore-flubs-stats-people-killed-guns-durin/ 
+
 Huntington-Klein, N., & Barrett, M. (2024, October 24). Castle Dataset. R PACKAGES. https://r-packages.io/datasets/castle 
 
 Jay, R. (2006, August 14). Spitting lead in Leadville: Doc Holliday’s last stand. HistoryNet. https://www.historynet.com/spitting-lead-in-leadville-doc-hollidays-last-stand/?f 
