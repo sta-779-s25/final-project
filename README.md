@@ -4,7 +4,7 @@
 
 ### Directory:
 
-* [Complete project file](/final-project.qmd)
+* [Complete project file in qmd format](/final-project.qmd)
 * [Project rendered as pdf](/final-project.pdf)
 * [Slides from in-class presentation: 2025-04-28](/causal_project_presentation_slides.pdf)
 * [Data cleaning function](/final_project_data_transform.R)
