@@ -10,7 +10,7 @@ execute:
   echo: false
   message: false
   warning: false
-abstract: This project builds on the analysis from Cheng and Hoekstra (2013) by re-examining whether strengthening Castle Doctrine laws leads to an increase in lethal violence. Castle Doctrine is a type of self-defense law that permits the use of deadly force to protect one’s home. During the 2000s, many U.S. states rapidly adopted and expanded such laws. In our analysis, we investigate the causal impact of implementing these laws on states’ murder rates from 2001 to 2010. We employ a comprehensive causal framework that includes constructing a directed acyclic graph (DAG), inverse probability weighting, G-computation, and sensitivity analyses. Our findings suggest that the adoption of Castle Doctrine laws does not have a statistically significant effect on murder rates relative to pre-enactment levels.
+abstract: This project builds on analysis from Cheng and Hoekstra (2013) by re-examining whether strengthening Castle Doctrine laws leads to an increase in lethal violence. Castle Doctrine is a type of self-defense law that permits the use of deadly force to protect one’s home. During the 2000s, many U.S. states rapidly adopted and expanded such laws. In our analysis, we investigate the causal impact of implementing these laws on states’ murder rates from 2001 to 2010. We employ a comprehensive causal framework that includes constructing a directed acyclic graph (DAG), inverse probability weighting, G-computation, and sensitivity analyses. Our findings suggest that the adoption of Castle Doctrine laws does not have a statistically significant effect on murder rates relative to pre-enactment levels.
 ---
 
 ```{r}
@@ -49,7 +49,7 @@ As Cheng and Hoekstra explain in their work, “Castle Doctrine” stems from En
 
 The modern expansion of self-defense laws began with Florida in 2005, when it became the first state to strengthen its self-defense protections and explicitly expand Castle Doctrine to places outside the home. This change in statute was quickly adopted by about twenty other states in the following years. Since 2005, Castle Doctrine has spread to the significant majority of US states. However, laws vary state to state, with some being limited to the home while others are expanded to include other places, e.g., one’s place of work or in one’s vehicle.
 
-Castle Doctrine often goes hand-in-hand with so-called "Stand Your Ground" laws; however, Castle Doctrine is distinguished from such laws in that it specifically applies to the home (and sometimes other areas such as one’s workplace or car) and allows the use of deadly force, even if disproportionate. In contrast, Stand Your Ground typically applies to anywhere one has a legal right to be but only allows defensive proportional force.  Note that the documentation for the data set refers to the exposure as just being the implementation of Castle Doctrine statutes, while in the paper it is sourced from, they seem to group Castle Doctrine and Stand Your Ground laws together as just Castle Doctrine.  This could be an important distinction that is lost, since, while similar, there are important distinctions between the two "families" of laws as previously noted. 
+Castle Doctrine often goes hand-in-hand with so-called "Stand Your Ground" laws; however, Castle Doctrine is distinguished from such laws in that it specifically applies to the home (and sometimes other areas such as one’s workplace or car) and allows the use of deadly force, even if disproportionate. In contrast, Stand Your Ground typically applies to anywhere one has a legal right to be but only allows defensive proportional force. Note that the documentation for the data set refers to the exposure as just being the implementation of Castle Doctrine statutes, while in the paper it is sourced from, they seem to group Castle Doctrine and Stand Your Ground laws together as just Castle Doctrine. This could be an important distinction that is lost, since, while similar, there are important distinctions between the two "families" of laws as previously noted.
 
 Proponents of Castle Doctrine argue that it is a useful deterrent to crime and contributes to public safety. Critics, on the other hand, contend that these laws may instead unnecessarily escalate levels of violence. The aim of our research is to investigate whether Castle Doctrine laws have a significant impact on states’ murder rates. For the purpose of our research, "murder rate" excludes cases that were ruled justifiable homicides.
 
@@ -413,7 +413,7 @@ ggplot(castle_dat, aes(x = .fitted,
 
 To account for the differences across the two subpopulations, we fit the previously-specified propensity score model, predicting a state's probability of passing a Castle Doctrine law based on the covariates in our adjustment set. After reweighting our data, we observed in **Table 2** that the median value of the covariates are much more matched between Castle Doctrine states and non-Castle Doctrine states.
 
-We display the distributions of the propensity scores for the subpopulations in the mirrored histograms in **Figures 5** and **6**. The distributions of propensity scores in the mirrored histograms demonstrated substantially improved balance between the two groups, and we did not observe any alarming positivity issues. 
+We display the distributions of the propensity scores for the subpopulations in the mirrored histograms in **Figures 5** and **6**. The distributions of propensity scores in the mirrored histograms demonstrated substantially improved balance between the two groups, and we did not observe any alarming positivity issues.
 
 We also used a Love Plot (**Figure 7**) to visualize the effect of ATT weighting on the Standardized Mean Difference for each confounding covariate. Before weighting, we observed the SMD for each covariate except for Robbery was relatively large, reflecting the unbalance between Castle Doctrine states and non-Castle Doctrine states across these variables. After re-weighting, we saw that the SMDs across the covariates are below the 0.1 threshold, suggesting that the weighting method had balanced the two pseudo-populations across each covariate very effectively. These results aligned with the conclusions we were able to draw from comparing the unweighted and re-weighted tables.
 
@@ -464,7 +464,7 @@ Finally, we compared the empirical cumulative distribution functions (eCDFs) of 
 
 To capture the time-varying effect of the implementation of Castle Doctrine, we performed G-Computation using a linear model that incorporated ATT weights from our IPW model, along with an interaction term representing the number of years before and after enactment of a state's Castle Doctrine law:\
 
-$Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$ \
+$Murder_i = CastleDoctrine_i + Years_i + CastleDoctrine_i:Years_i$\
 
 We simulated counterfactual data for each of the four years before and after the enactment of Castle Doctrine laws. For each year, we computed the difference in murder rates between the post- and pre-enactment periods for both Castle Doctrine and non–Castle Doctrine states. Using these differences, we conducted a pseudo–difference-in-differences analysis to estimate the treatment effect of Castle Doctrine over time. Based on our model, we estimated the average treatment effect among the treated (ATT) for four time intervals surrounding the law's passage. Four years was the largest symmetric time-span around Castle Doctrine passage available for comparison in our data. The point estimates of these effects are presented in **Table 3**. Across all periods, we observed a negative effect on the murder rate; however, to assess the reliability of these estimates, we conducted an uncertainty analysis
 
@@ -545,7 +545,7 @@ caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |>
 
 ## Measures of Uncertainty
 
-To assess the uncertainty of our estimates, we employed a bootstrap approach, resampling the data 1,000 times to generate a distribution of estimated treatment effects. From this empirical distribution, we calculated the $2.5$ and $97.5$ percentiles to construct 95\% confidence intervals for each point estimate. All four confidence intervals contained zero, indicating that none of the estimated effects were statistically significant at the 95\% level.
+To assess the uncertainty of our estimates, we employed a bootstrap approach, resampling the data 1,000 times to generate a distribution of estimated treatment effects. From this empirical distribution, we calculated the $2.5$ and $97.5$ percentiles to construct 95% confidence intervals for each point estimate. All four confidence intervals contained zero, indicating that none of the estimated effects were statistically significant at the 95% level.
 
 ```{r}
 
@@ -642,7 +642,7 @@ caption = "Estimated ATT by Year Relative to Castle Doctrine Ratification") |>
 
 To ensure the robustness of our results, we conducted a sensitivity analysis to assess the validity of our DAG structure and the potential impact of unmeasured confounding. First, we explored the causal effect using the alternate adjustment set from the DAG. If the covariates in the models were well-measured and the DAG was specified correctly, then each adjustment set should yield similar treatment effects, as both should provide an unbiased estimate of the true causal effect.
 
-Using the alternative adjustment set--which included robbery, poverty, robbery involving a firearm, and all four male age-race variables--we refit the propensity score model with a five-degree spline on the poverty variable and a four-degree spline on robbery involving a firearm to help balance the subpopulations. Following the same procedure as in our original analysis, we used G-Computation, difference-in-differences, and bootstrapping to obtain confidence intervals for the average treatment effect among the treated population. In **Table 5**, we display the point estimates from the same four time periods of our original analysis. Compared to the point estimates from the minimal adjustment set in **Table 3**, the effects using the alternate adjustment set are attenuated in magnitude. Nevertheless, examining the 95\% confidence intervals in **Table 6**, all confidence intervals still include zero, reinforcing the conclusion that enacting Castle Doctrine did not have a statistically significant impact on murder rate in states that passed such laws.
+Using the alternative adjustment set--which included robbery, poverty, robbery involving a firearm, and all four male age-race variables--we refit the propensity score model with a five-degree spline on the poverty variable and a four-degree spline on robbery involving a firearm to help balance the subpopulations. Following the same procedure as in our original analysis, we used G-Computation, difference-in-differences, and bootstrapping to obtain confidence intervals for the average treatment effect among the treated population. In **Table 5**, we display the point estimates from the same four time periods of our original analysis. Compared to the point estimates from the minimal adjustment set in **Table 3**, the effects using the alternate adjustment set are attenuated in magnitude. Nevertheless, examining the 95% confidence intervals in **Table 6**, all confidence intervals still include zero, reinforcing the conclusion that enacting Castle Doctrine did not have a statistically significant impact on murder rate in states that passed such laws.
 
 The discrepancy in point estimates suggested that there may have been measurement error in one or more covariates in the dataset or that the DAG did not fully capture the true underlying causal structure at work. To investigate the latter, we made some modifications to the DAG, such as connecting the police presence variable to crime variables; however, we found these changes did not significantly affect our results.
 
@@ -934,7 +934,7 @@ Looking at the positive plot (shown above), we observed that, if a one standard 
 
 # Conclusions
 
-In conclusion, we find the implementation of Castle Doctrine did not have a statistically significant effect on murder rates in U.S. states that enacted such laws between 2001 and 2010. Across four distinct intervals of years before and after enactment, we observed no significant effects on murder rates.
+We find the implementation of Castle Doctrine did not have a statistically significant effect on murder rates in U.S. states that enacted such laws between 2001 and 2010. Across four distinct intervals of years before and after enactment, we observed no significant effects on murder rates.
 
 However, several limitations may affect the validity of our findings. First, our DAG reflects our assumptions about the underlying causal structure in question. Consulting subject matter experts to help validate and refine relationships among key variables would be needed to improve further analysis. Similarly, our analysis was constrained by data availability. Important covariates$-$such as state-level gun ownership rates and political leaning$-$were not included but were likely relevant to the causal dynamics at play. Additionally, while all the laws in our dataset fall under the umbrella of "Castle Doctrine," they vary in their specific provisions, which may influence the effects of such laws on violent crime within their respective states. For future analyses, we recommend compiling a more comprehensive dataset to support more robust and granular modeling.
 
@@ -944,15 +944,15 @@ Finally, our focus on murder rates alone presents another limitation. As of 2017
 
 Cheng, Cheng, and Mark Hoekstra. 2013. “Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine.” Journal of Human Resources 48 (3): 821–54.
 
-Gillin, J. (2017, October 25). Moore flubs stats on gun deaths during home invasions. Politifact. https://www.politifact.com/factchecks/2017/oct/25/michael-moore/michael-moore-flubs-stats-people-killed-guns-durin/ 
+Gillin, J. (2017, October 25). Moore flubs stats on gun deaths during home invasions. Politifact. https://www.politifact.com/factchecks/2017/oct/25/michael-moore/michael-moore-flubs-stats-people-killed-guns-durin/
 
-Huntington-Klein, N., & Barrett, M. (2024, October 24). Castle Dataset. R PACKAGES. https://r-packages.io/datasets/castle 
+Huntington-Klein, N., & Barrett, M. (2024, October 24). Castle Dataset. R PACKAGES. https://r-packages.io/datasets/castle
 
-Jay, R. (2006, August 14). Spitting lead in Leadville: Doc Holliday’s last stand. HistoryNet. https://www.historynet.com/spitting-lead-in-leadville-doc-hollidays-last-stand/?f 
+Jay, R. (2006, August 14). Spitting lead in Leadville: Doc Holliday’s last stand. HistoryNet. https://www.historynet.com/spitting-lead-in-leadville-doc-hollidays-last-stand/?f
 
-Johnson, D. (1990, June 1). Colorado Journal; “Make My Day”: More than a threat - The New York Times. The New York Times. https://www.nytimes.com/1990/06/01/us/colorado-journal-make-my-day-more-than-a-threat.html 
+Johnson, D. (1990, June 1). Colorado Journal; “Make My Day”: More than a threat - The New York Times. The New York Times. https://www.nytimes.com/1990/06/01/us/colorado-journal-make-my-day-more-than-a-threat.html
 
-Shouse, N. (2025a, February 4). Castle Doctrine vs. stand your ground – what’s the difference? Shouse Law Group - Criminal, Immigration, Injury & Employment Lawyers. https://www.shouselaw.com/ca/blog/castle-doctrine-vs-stand-your-ground/ 
+Shouse, N. (2025a, February 4). Castle Doctrine vs. stand your ground – what’s the difference? Shouse Law Group - Criminal, Immigration, Injury & Employment Lawyers. https://www.shouselaw.com/ca/blog/castle-doctrine-vs-stand-your-ground/
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
