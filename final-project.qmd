@@ -10,6 +10,7 @@ execute:
   echo: false
   message: false
   warning: false
+bibliography: references.bib
 abstract: This project builds on analysis from Cheng and Hoekstra (2013) by re-examining whether strengthening Castle Doctrine laws leads to an increase in lethal violence. Castle Doctrine is a type of self-defense law that permits the use of deadly force to protect one’s home. During the 2000s, many U.S. states rapidly adopted and expanded such laws. In our analysis, we investigate the causal impact of implementing these laws on states’ murder rates from 2001 to 2010. We employ a comprehensive causal framework that includes constructing a directed acyclic graph (DAG), inverse probability weighting, G-computation, and sensitivity analyses. Our findings suggest that the adoption of Castle Doctrine laws does not have a statistically significant effect on murder rates relative to pre-enactment levels.
 ---
 
@@ -41,15 +42,15 @@ data("castle")
 
 # Causal Question
 
-Using data assembled by Cheng Cheng and Mark Hoekstra for their study, "Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine" (2013), primarily sourced from the FBI Uniform Crime Reports Summary, we sought to examine the causal relationship between implementing Castle Doctrine and murder rates in the U.S. Focusing on the “treated” population—states that passed Castle Doctrine laws between 2001 and 2010, we investigated whether these states should repeal Castle Doctrine laws in order to bring down murder rates. Formally, our causal question was: among the states that passed Castle Doctrine laws between 2001 and 2010, what was the effect of that implementation on the state’s murder rate?
+Using data assembled by Cheng Cheng and Mark Hoekstra for their study, "Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine" [@ch13], primarily sourced from the FBI Uniform Crime Reports Summary, we sought to examine the causal relationship between implementing Castle Doctrine and murder rates in the U.S. Focusing on the “treated” population—states that passed Castle Doctrine laws between 2001 and 2010, we investigated whether these states should repeal Castle Doctrine laws in order to bring down murder rates. Formally, our causal question was: among the states that passed Castle Doctrine laws between 2001 and 2010, what was the effect of that implementation on the state’s murder rate?
 
 # Background
 
-As Cheng and Hoekstra explain in their work, “Castle Doctrine” stems from English Common Law, allowing an exception to the “duty to retreat” when an individual is in their own home. In the United States, the legal history of Castle Doctrine dates back to the 1700s as a legacy of English colonial rule. During the era of Westward Expansion, the concept broadened to cover not only the home but also surrounding property and, in many cases, any place one had a legal right to be. Castle Doctrine principles were formally codified in 1985, when Colorado passed the “Make My Day” law, which removed any civil or criminal liability for the use of force, including lethal force, against a home invader.
+As Cheng and Hoekstra explain in their work, “Castle Doctrine” stems from English Common Law, allowing an exception to the “duty to retreat” when an individual is in their own home [@ch13]. In the United States, the legal history of Castle Doctrine dates back to the 1700s as a legacy of English colonial rule. During the era of Westward Expansion, the concept broadened to cover not only the home but also surrounding property and, in many cases, any place one had a legal right to be [@j06]. Castle Doctrine principles were formally codified in 1985, when Colorado passed the “Make My Day” law, which removed any civil or criminal liability for the use of force, including lethal force, against a home invader [@j90].
 
-The modern expansion of self-defense laws began with Florida in 2005, when it became the first state to strengthen its self-defense protections and explicitly expand Castle Doctrine to places outside the home. This change in statute was quickly adopted by about twenty other states in the following years. Since 2005, Castle Doctrine has spread to the significant majority of US states. However, laws vary state to state, with some being limited to the home while others are expanded to include other places, e.g., one’s place of work or in one’s vehicle.
+The modern expansion of self-defense laws began with Florida in 2005, when it became the first state to strengthen its self-defense protections and explicitly expand Castle Doctrine to places outside the home [@ch13]. This change in statute was quickly adopted by about twenty other states in the following years. Since 2005, Castle Doctrine has spread to the significant majority of US states. However, laws vary state to state, with some being limited to the home while others are expanded to include other places, e.g., one’s place of work or in one’s vehicle.
 
-Castle Doctrine often goes hand-in-hand with so-called "Stand Your Ground" laws; however, Castle Doctrine is distinguished from such laws in that it specifically applies to the home (and sometimes other areas such as one’s workplace or car) and allows the use of deadly force, even if disproportionate. In contrast, Stand Your Ground typically applies to anywhere one has a legal right to be but only allows defensive proportional force. Note that the documentation for the data set refers to the exposure as just being the implementation of Castle Doctrine statutes, while in the paper it is sourced from, they seem to group Castle Doctrine and Stand Your Ground laws together as just Castle Doctrine. This could be an important distinction that is lost, since, while similar, there are important distinctions between the two "families" of laws as previously noted.
+Castle Doctrine often goes hand-in-hand with so-called "Stand Your Ground" laws; however, Castle Doctrine is distinguished from such laws in that it specifically applies to the home (and sometimes other areas such as one’s workplace or car) and allows the use of deadly force, even if disproportionate. In contrast, Stand Your Ground typically applies to anywhere one has a legal right to be but only allows defensive proportional force [@s25].
 
 Proponents of Castle Doctrine argue that it is a useful deterrent to crime and contributes to public safety. Critics, on the other hand, contend that these laws may instead unnecessarily escalate levels of violence. The aim of our research is to investigate whether Castle Doctrine laws have a significant impact on states’ murder rates. For the purpose of our research, "murder rate" excludes cases that were ruled justifiable homicides.
 
@@ -936,30 +937,21 @@ Looking at the positive plot (shown above), we observed that, if a one standard 
 
 We find the implementation of Castle Doctrine did not have a statistically significant effect on murder rates in U.S. states that enacted such laws between 2001 and 2010. Across four distinct intervals of years before and after enactment, we observed no significant effects on murder rates.
 
-However, several limitations may affect the validity of our findings. First, our DAG reflects our assumptions about the underlying causal structure in question. Consulting subject matter experts to help validate and refine relationships among key variables would be needed to improve further analysis. Similarly, our analysis was constrained by data availability. Important covariates$-$such as state-level gun ownership rates and political leaning$-$were not included but were likely relevant to the causal dynamics at play. Additionally, while all the laws in our dataset fall under the umbrella of "Castle Doctrine," they vary in their specific provisions, which may influence the effects of such laws on violent crime within their respective states. For future analyses, we recommend compiling a more comprehensive dataset to support more robust and granular modeling.
+However, several limitations may affect the validity of our findings. First, our DAG reflects our assumptions about the underlying causal structure in question. Consulting subject matter experts to help validate and refine relationships among key variables would be needed to improve further analysis. Similarly, our analysis was constrained by data availability. Important covariates$-$such as state-level gun ownership rates and political leaning$-$were not included but were likely relevant to the causal dynamics at play. Additionally, while all the laws in our dataset fall under the umbrella of "Castle Doctrine," they vary in their specific provisions, which may influence the effects of such laws on violent crime within their respective states. In fact, the documentation of the dataset refers to the variable in question as the implementation of Castle Doctrine statutes, whereas Cheng and Hoekstra appear to group Castle Doctrine and Stand Your Ground laws together [@hb24; @ch13]. This distinction may be important, as the two types of laws, while similar, have meaningful differences that could be obscured by this grouping. For future analyses, we recommend compiling a more comprehensive dataset to support more robust and granular modeling.
 
-Finally, our focus on murder rates alone presents another limitation. As of 2017, only about 100 burglary-homicides occurred annually nationwide, suggesting our analysis may be underpowered to detect an effect of Castle Doctrine on murder. Examining other outcomes related to Castle Doctrine$-$such as burglary rates or overall homicide rates$-$could provide a more comprehensive understanding of the laws' impact on violent crime.
+Finally, our focus on murder rates alone presents another limitation. As of 2017, only about 100 burglary-homicides occurred annually nationwide, suggesting our analysis may be underpowered to detect an effect of Castle Doctrine on murder [@g17]. Examining other outcomes related to Castle Doctrine$-$such as burglary rates or overall homicide rates$-$could provide a more comprehensive understanding of the laws' impact on violent crime.
 
 # References
+::: {#refs}
+:::
 
-Cheng, Cheng, and Mark Hoekstra. 2013. “Does Strengthening Self-Defense Law Deter Crime or Escalate Violence? Evidence from Expansions to Castle Doctrine.” Journal of Human Resources 48 (3): 821–54.
-
-Gillin, J. (2017, October 25). Moore flubs stats on gun deaths during home invasions. Politifact. https://www.politifact.com/factchecks/2017/oct/25/michael-moore/michael-moore-flubs-stats-people-killed-guns-durin/
-
-Huntington-Klein, N., & Barrett, M. (2024, October 24). Castle Dataset. R PACKAGES. https://r-packages.io/datasets/castle
-
-Jay, R. (2006, August 14). Spitting lead in Leadville: Doc Holliday’s last stand. HistoryNet. https://www.historynet.com/spitting-lead-in-leadville-doc-hollidays-last-stand/?f
-
-Johnson, D. (1990, June 1). Colorado Journal; “Make My Day”: More than a threat - The New York Times. The New York Times. https://www.nytimes.com/1990/06/01/us/colorado-journal-make-my-day-more-than-a-threat.html
-
-Shouse, N. (2025a, February 4). Castle Doctrine vs. stand your ground – what’s the difference? Shouse Law Group - Criminal, Immigration, Injury & Employment Lawyers. https://www.shouselaw.com/ca/blog/castle-doctrine-vs-stand-your-ground/
+# Appendix
 
 ```{r ref.label = knitr::all_labels()}
 #| echo: true
 #| eval: false
 ```
 
-# Appendix: {.appendix}
 
 ```{r}
 
